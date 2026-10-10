@@ -252,6 +252,22 @@ button.stat .go{position:absolute;top:12px;right:14px;font-size:12px;font-weight
 .nb-x{border:0;background:none;color:var(--muted);font-size:20px;line-height:1;cursor:pointer;padding:4px 8px;border-radius:6px}
 .nb-x:hover{background:var(--surface)}
 .dlg.wide{width:min(1060px,100%)}
+.dlg.alert{width:min(760px,100%)}
+.dlg.alert .dlg-f,.dlg.wide .dlg-f{position:sticky;bottom:0;background:var(--surface)}
+.al-sec{display:flex;flex-direction:column;gap:6px}
+.al-sec+.al-sec{margin-top:16px}
+.al-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;border-bottom:2px solid var(--c);padding-bottom:4px}
+.al-h b{font-family:var(--font-display);font-weight:700;font-size:19px;letter-spacing:.06em;text-transform:uppercase;color:var(--c)}
+.al-h span{font-size:12.5px;color:var(--muted)}
+.al-late{--c:var(--bad)} .al-week{--c:var(--warn)}
+.al-row{display:grid;grid-template-columns:74px minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:7px 8px;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+.al-late .al-row{background:var(--bad-soft);border-color:transparent}
+.al-d{font-weight:600;font-variant-numeric:tabular-nums;font-size:13px}
+.al-d small{display:block;font-weight:400;color:var(--muted);font-size:11.5px}
+.al-w{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;font-size:13px;min-width:0}
+.al-w .el{font-weight:600}
+.al-r{display:flex;flex-direction:column;align-items:flex-end;gap:2px;font-size:12px;color:var(--muted)}
+@media (max-width:520px){.al-row{grid-template-columns:64px minmax(0,1fr)}.al-r{grid-column:1/-1;flex-direction:row;justify-content:space-between;align-items:center}}
 .dlg.wide .dlg-b{display:block}
 #toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--band);color:var(--band-ink);padding:10px 16px;border-radius:8px;border:1px solid var(--band-line);box-shadow:var(--shadow);max-width:calc(100vw - 32px);z-index:50}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -608,6 +624,26 @@ function sysNotify(){
   try{new Notification("KHUZAM · "+plural(t.length,"delivery")+" due today",{body:t.map(i=>modName(i.mod)+" · "+i.b+" · "+i.l+" "+elShort(i.e)+" "+PKC[i.p]+(dwgs(i)?" · "+dwgs(i)+" dwgs":"")).join("\n")+"\nTotal: "+dw+" drawings",tag:"khuzam-today"})}catch(e){}
 }
 
+function startupAlert(){
+  const all=allItems();
+  const late=all.filter(LISTS.late.f).sort((a,b)=>a.due.localeCompare(b.due)||a.mod.localeCompare(b.mod));
+  const week=all.filter(LISTS.week.f).sort((a,b)=>a.due.localeCompare(b.due)||a.mod.localeCompare(b.mod)||BLD.indexOf(a.b)-BLD.indexOf(b.b));
+  if(!late.length&&!week.length)return false;
+  const dw=l=>l.reduce((a,i)=>a+(dwgs(i)||0),0);
+  const row=it=>{const st=status(it);const d=dwgs(it);return `<div class="al-row"><span class="al-d">${fmt(it.due)}<small>${DAY[wd(it.due)]} · ${DAR[wd(it.due)]}</small></span>
+    <span class="al-w"><span class="tag">${modName(it.mod).toUpperCase()}</span><span class="code">${it.b}</span><span class="el">${h(it.l)} · ${h(elShort(it.e))}</span><span class="code">${bi(PKC[it.p],PK_AR[it.p])}</span></span>
+    <span class="al-r"><span class="pill ${SCLS[st]}">${cdBi(it)}</span><span class="num">${d!=null?bi(plural(d,"dwg"),d+" لوحة"):bi("— dwgs","— لوحة")}</span></span></div>`};
+  const sec=(cls,t,a,l)=>l.length?`<div class="al-sec ${cls}"><div class="al-h"><b>${bi(t,a)}</b><span class="num">${bi(plural(l.length,"package")+" · "+plural(dw(l),"drawing"),l.length+" بند · "+dw(l)+" لوحة")}</span></div>${l.map(row).join("")}</div>`:"";
+  layer(`<div class="dlg alert" role="alertdialog" aria-modal="true" aria-labelledby="alT">
+    <div class="dlg-h"><small>${fmt(todayISO(),"full").toUpperCase()}<span class="ar">النهارده · ${DAR[wd(todayISO())]}</span></small><h3 id="alT">${bi("Delivery alert","تنبيه التسليمات")}</h3></div>
+    <div class="dlg-b" style="display:block">
+      ${sec("al-late","Overdue","متأخر",late)}
+      ${sec("al-week","Due in the next 7 days","مطلوب خلال 7 أيام",week)}
+    </div>
+    <div class="dlg-f"><button type="button" class="btn primary bi" data-close>${bi("Got it","تمام")}</button></div></div>`,null);
+  return true;
+}
+
 /* ---------- RENDER + EVENTS ---------- */
 function render(){
   const t=todayISO();$("#asof").innerHTML="Today · "+fmt(t,"full")+'<span class="ar">النهارده · '+DAR[wd(t)]+"</span>";
@@ -686,7 +722,7 @@ setInterval(()=>{try{sysNotify()}catch(e){}},15*60*1000);
   catch(e){console.error(e);S.conn="off";S.connErr="Couldn't reach Supabase. Check the URL, key and the khuzam_store table.";render();return}
   S.db=db;S.canWrite=true;S.store=db.kind;
   let gS=false,gT=false;
-  const upd=()=>{S.ready=gS&&gT;if(!$("#layer").innerHTML)render()};
+  const upd=()=>{S.ready=gS&&gT;if(!$("#layer").innerHTML)render();if(S.ready&&!S.alertShown){S.alertShown=true;if(!$("#layer").innerHTML)startupAlert()}};
   db.collection("schedules").onSnapshot(snap=>{const o={};snap.docs.forEach(d=>{o[d.id]=d.data()});S.sched=o;gS=true;S.conn="live";upd()},()=>{S.conn="off";render()});
   db.collection("status").onSnapshot(snap=>{const o={};snap.docs.forEach(d=>{o[d.id]=d.data()});S.status=o;gT=true;upd()},()=>{S.conn="off";render()});
 })();
