@@ -1,0 +1,610 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style>
+<title>KHUZAM Delivery Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap">
+<style>
+/* Layout (IBIMS tracker system): navy title-block band with view tabs, stat strip,
+   "due now" log, module panels → building selector → level × element matrix (concrete | reinforcement). */
+:root{
+  --bg:#EDF1F4; --surface:#FFFFFF; --surface-2:#F5F8FA; --ink:#10263A; --muted:#566879; --line:#D2DCE4;
+  --band:#0F2A44; --band-ink:#EAF2F8; --band-muted:#9DB4C8; --band-line:#294765;
+  --accent:#0B7F82; --accent-ink:#FFFFFF; --accent-soft:#DDF1F0;
+  --ok:#1B7446; --ok-soft:#DCF1E5; --warn:#8A5800; --warn-soft:#FBEDCF;
+  --bad:#B3261E; --bad-soft:#FBE2DF; --info:#1D5FA8; --info-soft:#DEEBFA; --idle:#566879; --idle-soft:#E5EBF0;
+  --c-done:#1B8A52; --c-late:#D03B3B;
+  --shadow:0 1px 2px rgba(16,38,58,.06),0 6px 18px rgba(16,38,58,.06);
+  --font-display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0A1620; --surface:#11212E; --surface-2:#162A3A; --ink:#E4EDF4; --muted:#93A6B7; --line:#24394B;
+  --band:#081A2B; --band-ink:#EAF2F8; --band-muted:#8FA8BE; --band-line:#1E3852;
+  --accent:#35BDB8; --accent-ink:#06201F; --accent-soft:#123A3C;
+  --ok:#5FCB92; --ok-soft:#143524; --warn:#E9B657; --warn-soft:#3A2C0E;
+  --bad:#F28B82; --bad-soft:#40191A; --info:#7FB4F0; --info-soft:#15304D; --idle:#93A6B7; --idle-soft:#1D3040;
+  --c-done:#2FA86A; --c-late:#E66767;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 18px rgba(0,0,0,.25); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0A1620; --surface:#11212E; --surface-2:#162A3A; --ink:#E4EDF4; --muted:#93A6B7; --line:#24394B;
+  --band:#081A2B; --band-ink:#EAF2F8; --band-muted:#8FA8BE; --band-line:#1E3852;
+  --accent:#35BDB8; --accent-ink:#06201F; --accent-soft:#123A3C;
+  --ok:#5FCB92; --ok-soft:#143524; --warn:#E9B657; --warn-soft:#3A2C0E;
+  --bad:#F28B82; --bad-soft:#40191A; --info:#7FB4F0; --info-soft:#15304D; --idle:#93A6B7; --idle-soft:#1D3040;
+  --c-done:#2FA86A; --c-late:#E66767;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 18px rgba(0,0,0,.25); color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:14px;line-height:1.45}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.label{font-family:var(--font-display);font-weight:600;font-size:13px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.num{font-variant-numeric:tabular-nums}
+.ar{display:block;font-family:"IBM Plex Sans Arabic","Segoe UI",Tahoma,sans-serif;font-weight:500;font-size:max(11px,.72em);letter-spacing:0;text-transform:none;line-height:1.35;direction:rtl;unicode-bidi:isolate;opacity:.82}
+.ar{text-align:left}
+.r .ar,th.r .ar{text-align:right}
+.pill .ar,.code .ar,.tag .ar,.btn .ar{text-align:center;opacity:.9}
+.tag:has(.ar),.code:has(.ar){display:inline-flex;flex-direction:column;align-items:center;line-height:1.25;padding-block:2px}
+.pill:has(.ar){border-radius:10px;text-align:center}
+
+.btn .ar{font-size:11px}
+.btn.bi{flex-direction:column;gap:0;line-height:1.15}
+.views button .ar{font-size:12px;color:inherit}
+.muted{color:var(--muted)}
+
+/* band */
+.band{background:var(--band);color:var(--band-ink);border-bottom:3px solid var(--accent)}
+.band-in{max-width:1320px;margin:0 auto;padding:14px 20px;display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;min-width:0}
+.brand b{font-family:var(--font-display);font-weight:700;font-size:28px;letter-spacing:.14em;line-height:1}
+.brand .ar{font-size:14px;color:var(--band-muted);opacity:1}
+.brand span{font-family:var(--font-display);font-weight:500;font-size:19px;letter-spacing:.08em;text-transform:uppercase;color:var(--band-muted);padding-left:14px;border-left:1px solid var(--band-line)}
+.views{display:flex;flex-wrap:wrap;gap:4px;min-width:0}
+.views button{font-family:var(--font-display);font-weight:600;font-size:17px;letter-spacing:.08em;text-transform:uppercase;background:transparent;border:0;border-bottom:3px solid transparent;color:var(--band-muted);padding:6px 12px;cursor:pointer;white-space:nowrap}
+.views button:hover{color:var(--band-ink)}
+.views button[aria-pressed="true"]{color:var(--band-ink);border-bottom-color:var(--accent)}
+.views button.exec{border:1px solid var(--accent);border-radius:5px;color:var(--band-ink);margin-right:8px;padding:6px 14px}
+.views button.exec[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.conn{font-size:12px;color:var(--band-muted);display:flex;align-items:center;gap:6px}
+.conn i{width:8px;height:8px;border-radius:50%;background:var(--band-muted);display:inline-block}
+.conn.live i{background:#3ED3A0} .conn.off i{background:#F2A65A}
+.band-tools{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.asof{font-size:12px;color:var(--band-muted)}
+@media (max-width:520px){.band-in{padding-inline:16px}.views button{font-size:15px;padding:5px 9px}.views button.exec{padding:5px 10px;margin-right:4px}}
+
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:8px 14px;border-radius:6px;cursor:pointer;font-weight:500;line-height:1.2;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.danger{color:var(--bad);border-color:var(--bad)}
+.btn.small{padding:4px 10px;font-size:13px}
+.btn:disabled{opacity:.55;cursor:default}
+.btn svg{width:15px;height:15px}
+
+.wrap{max-width:1320px;margin:0 auto;padding-inline:20px;padding-block:20px 48px;display:flex;flex-direction:column;gap:22px}
+@media (max-width:520px){.wrap{padding-inline:16px}}
+
+/* headings */
+.mhead{display:flex;flex-wrap:wrap;gap:10px 20px;align-items:flex-end;justify-content:space-between}
+.mhead h1,.mhead h2{font-family:var(--font-display);font-weight:600;font-size:30px;letter-spacing:.04em;text-transform:uppercase;margin:0;line-height:1.1}
+.mhead p{margin:2px 0 0;color:var(--muted);font-size:13px}
+.sec-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 16px;margin-bottom:10px}
+.sec-head h2{font-family:var(--font-display);font-weight:600;font-size:24px;letter-spacing:.04em;text-transform:uppercase;margin:0;text-wrap:balance}
+.sec-head p{margin:0;color:var(--muted);font-size:13px}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.stat{background:var(--surface);padding:14px 16px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.stat b{font-family:var(--font-display);font-weight:600;font-size:34px;line-height:1.05;font-variant-numeric:tabular-nums}
+.stat b em{font-style:normal;font-size:18px;color:var(--muted);margin-left:3px}
+.stat small{color:var(--muted);font-size:12px}
+.stat.alert b{color:var(--bad)} .stat.warnv b{color:var(--warn)} .stat.okv b{color:var(--ok)}
+.stat .meter{margin-block:4px 2px}
+@media (max-width:860px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.stat:first-child{grid-column:1/-1}}
+.meter{height:8px;background:var(--idle-soft);border-radius:4px;overflow:hidden;display:flex}
+.meter i{display:block;height:100%}
+.meter .m-done{background:var(--c-done)} .meter .m-late{background:var(--c-late)}
+.meter.big{height:12px;border-radius:6px}
+
+/* pills, codes */
+.pill{display:inline-block;font-size:12px;font-weight:600;border-radius:999px;padding:2px 10px;white-space:nowrap;background:var(--idle-soft);color:var(--idle)}
+.pill.ok{background:var(--ok-soft);color:var(--ok)} .pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)} .pill.info{background:var(--info-soft);color:var(--info)}
+.code{font-family:var(--font-display);font-weight:600;font-size:13px;letter-spacing:.1em;border:1px solid var(--line);background:var(--surface-2);color:var(--muted);border-radius:4px;padding:1px 6px;white-space:nowrap}
+.tag{font-size:11.5px;font-weight:600;letter-spacing:.04em;background:var(--accent-soft);color:var(--accent);border-radius:4px;padding:1px 7px;white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;background:var(--idle);flex:none}
+.dot.ok{background:var(--ok)} .dot.bad{background:var(--bad)} .dot.warn{background:var(--warn)} .dot.info{background:var(--info)}
+
+/* due-now log */
+.tablewrap{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow-x:auto;box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%}
+table.log{min-width:760px}
+th{font-family:var(--font-display);font-weight:600;font-size:13px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);text-align:left;padding:10px;background:var(--surface-2);border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+th.r,td.r{text-align:right}
+td.nowrap{white-space:nowrap}
+td .sub{display:block;font-size:12px;color:var(--muted)}
+tr.is-late td:first-child{box-shadow:inset 3px 0 0 var(--bad)}
+tr.daybreak td{border-top:2px solid var(--line)}
+.empty{background:var(--surface);border:1px dashed var(--line);border-radius:8px;padding:22px 16px;color:var(--muted);text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center}
+.empty p{margin:0;max-width:62ch}
+
+/* module panels */
+.pgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media (max-width:980px){.pgrid{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0;box-shadow:var(--shadow);text-align:left;cursor:pointer;transition:border-color .15s}
+.panel:hover{border-color:var(--accent)}
+.panel.nodata{box-shadow:none;border-style:dashed}
+.card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.proj-t{font-family:var(--font-display);font-weight:700;font-size:28px;letter-spacing:.05em;line-height:1.05;margin:0}
+.bl-mini{display:flex;gap:5px}
+.prog{display:flex;flex-direction:column;gap:6px}
+.prog-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.prog-pct{font-family:var(--font-display);font-weight:600;font-size:30px;line-height:1}
+.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding-block:8px}
+.kpi{display:flex;flex-direction:column;min-width:0}
+.kpi span{font-size:11.5px;color:var(--muted)}
+.kpi b{font-family:var(--font-display);font-weight:600;font-size:24px;line-height:1.1;font-variant-numeric:tabular-nums}
+.kpi.alert b{color:var(--bad)}
+.nextline{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:13px}
+.nextline .plabel{font-family:var(--font-display);font-weight:600;font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+
+/* building selector */
+.seg{display:flex;flex-wrap:wrap;gap:6px;min-width:0}
+.bgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:860px){.bgrid{grid-template-columns:1fr}}
+.bcard{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:10px;text-align:left;cursor:pointer;min-width:0}
+.bcard:hover{border-color:var(--accent)}
+.bcard[aria-pressed="true"]{border-color:var(--band);box-shadow:inset 0 -3px 0 var(--accent),var(--shadow)}
+.bhead{display:flex;gap:12px;align-items:center}
+.bletter{width:46px;height:46px;border-radius:6px;background:var(--surface-2);border:1px solid var(--line);display:grid;place-items:center;font-family:var(--font-display);font-weight:700;font-size:28px;flex:none}
+.bcard[aria-pressed="true"] .bletter{background:var(--band);border-color:var(--band);color:var(--band-ink)}
+.bhead div{display:flex;flex-direction:column;min-width:0}
+.bhead b{font-family:var(--font-display);font-weight:600;font-size:21px;letter-spacing:.04em;line-height:1.1}
+.bhead span{font-size:12px;color:var(--muted)}
+
+/* filters */
+.fbar{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.fbar .seg button{font-family:var(--font-display);font-weight:600;font-size:15px;letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);padding:5px 14px;border-radius:5px;cursor:pointer;line-height:1.25}
+.fbar .seg button:hover{border-color:var(--accent)}
+.fbar .seg button[aria-pressed="true"]{background:var(--band);border-color:var(--band);color:var(--band-ink);box-shadow:inset 0 -3px 0 var(--accent)}
+.fbar .seg button{display:inline-flex;align-items:center;gap:2px}.fbar .seg button .ar{font-size:12px}
+.fbar .seg button small{font-family:var(--font-body);font-weight:500;font-size:12px;letter-spacing:0;opacity:.7;margin-left:6px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:12.5px;color:var(--muted);margin-left:auto}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+
+/* matrix */
+table.mx{min-width:720px;table-layout:fixed}
+table.mx col.c-el{width:24%}
+table.mx th small{display:block;font-family:var(--font-body);font-weight:500;letter-spacing:0;text-transform:none;font-size:11.5px}
+tr.lvl td{background:var(--surface-2);padding:10px;border-top:2px solid var(--line)}
+.lvl-in{display:flex;justify-content:space-between;align-items:center;gap:8px 16px;flex-wrap:wrap}
+.lvl-in h3{margin:0;font-family:var(--font-display);font-weight:700;font-size:19px;letter-spacing:.08em;display:flex;gap:10px;align-items:center}
+.lvl-meta{display:flex;gap:14px;align-items:center;font-size:12.5px;color:var(--muted);flex-wrap:wrap}
+.lvl-meta .meter{width:110px;height:6px}
+td.el{font-weight:600;font-size:13.5px}
+td.cellw{padding:4px}
+.cell{width:100%;border:1px solid transparent;background:transparent;border-radius:6px;padding:7px 9px;text-align:left;display:flex;flex-direction:column;gap:4px;cursor:pointer;min-width:0}
+.cell:hover{border-color:var(--accent);background:var(--surface-2)}
+.cell .l1,.cell .l2{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.cell .dt{font-weight:600;font-variant-numeric:tabular-nums}
+.cell .l2{font-size:12px;color:var(--muted)}
+.cell.late{background:var(--bad-soft)} .cell.late .cd{color:var(--bad);font-weight:600}
+.cell.soon .cd{color:var(--warn);font-weight:600}
+.cell.week .cd{color:var(--info);font-weight:600}
+.cell.done .dt{text-decoration:line-through;text-decoration-color:var(--ok)} .cell.done .cd{color:var(--ok);font-weight:600}
+.na{color:var(--muted);font-size:12.5px;padding:7px 9px;display:block}
+
+/* dialog */
+.scrim{position:fixed;inset:0;background:rgba(8,20,32,.55);display:grid;place-items:center;padding:16px;z-index:40}
+.dlg{border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);width:min(560px,100%);max-height:calc(100vh - 32px);overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.dlg-h{background:var(--band);color:var(--band-ink);padding:12px 18px;border-bottom:3px solid var(--accent);display:flex;flex-direction:column;gap:2px}
+.dlg-h small{font-family:var(--font-display);font-weight:600;letter-spacing:.1em;color:var(--band-muted);font-size:13px}
+.dlg-h h3{font-family:var(--font-display);font-weight:600;font-size:22px;letter-spacing:.06em;text-transform:uppercase;margin:0}
+.dlg-b{padding:16px 18px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px}
+.dlg-b .full{grid-column:1/-1}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field > span{font-size:12px;color:var(--muted);font-weight:500}
+.field input,.field select{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:7px 9px;min-width:0;max-width:100%}
+.field output{border:1px dashed var(--line);border-radius:6px;padding:7px 9px;background:var(--surface-2);min-height:36px;font-variant-numeric:tabular-nums}
+.note{background:var(--warn-soft);color:var(--warn);border-radius:6px;padding:8px 10px;font-size:13px}
+.dlg-f{padding:12px 18px 16px;display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;align-items:center;border-top:1px solid var(--line)}
+.dlg-f .left{margin-right:auto}
+.err{color:var(--bad);font-size:13px;margin:0}
+@media (max-width:520px){.dlg-b{grid-template-columns:1fr}}
+@media (max-width:640px){
+  .tablewrap table.mx{min-width:0;table-layout:auto}
+  .tablewrap table.mx thead,.tablewrap table.mx colgroup{display:none}
+  .tablewrap table.mx tbody,.tablewrap table.mx tr.lvl,.tablewrap table.mx tr.lvl td{display:block}
+  .tablewrap table.mx tr:not(.lvl){display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .tablewrap table.mx td.el{grid-column:1/-1;border-bottom:0;padding-bottom:0}
+  .tablewrap table.mx td.cellw+td.cellw{border-left:1px dashed var(--line)}
+  .cell::before{content:attr(data-pk);font-family:var(--font-display);font-weight:600;font-size:12px;letter-spacing:.08em;color:var(--muted)}
+}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--band);color:var(--band-ink);padding:10px 16px;border-radius:8px;border:1px solid var(--band-line);box-shadow:var(--shadow);max-width:calc(100vw - 32px);z-index:50}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+
+<header class="band">
+  <div class="band-in">
+    <div class="brand"><b>SUSTRA</b><span>AL KHUZAM · Delivery Tracker<i class="ar" style="font-style:normal">متابعة تسليمات مشروع الخزام</i></span></div>
+    <nav class="views" id="views" aria-label="View"></nav>
+    <div class="band-tools"><span class="asof num" id="asof"></span><div class="conn" id="conn"><i></i><span>Connecting…</span></div></div>
+  </div>
+</header>
+<main class="wrap" id="app"></main>
+<input type="file" id="xlsIn" accept=".xlsx,.xls,.xlsm" hidden>
+<div id="layer"></div>
+<div id="toast" role="status" hidden></div>
+
+<script>
+(function(){
+"use strict";
+const MODS=["M1","M2","M3"];
+const BLD=["Z","A","B"];
+const LEVELS=["GROUND","FIRST","SECOND","THIRD","FOURTH","FIFTH","SIXTH","SEVENTH","EIGHTH","ROOF","TOP ROOF"];
+const ELS=["SOG","SLAB","COLUMNS & SHEAR WALLS","COREWALL","BEAMS","STAIRS","POOL"];
+const PK={CONC:"Concrete",RFT:"Reinforcement"};
+const PKC={CONC:"CONC",RFT:"RFT"};
+const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const DAY=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const DAR=["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
+const DAYL=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+const ST={late:"Overdue",soon:"Due ≤ 3 days",week:"This week",later:"Upcoming",done:"Delivered"};
+const ST_AR={late:"متأخر",soon:"خلال 3 أيام",week:"الأسبوع ده",later:"قادم",done:"اتسلّم"};
+const PK_AR={CONC:"خرسانة",RFT:"تسليح"};
+const bi=(en,ar)=>en+'<span class="ar" lang="ar">'+ar+'</span>';
+const daysAr=n=>n===1?"يوم":n===2?"يومين":(n<=10?n+" أيام":n+" يوم");
+const SCLS={late:"bad",soon:"warn",week:"info",later:"idle",done:"ok"};
+
+const S={sched:{},status:{},db:null,canWrite:null,ready:false,conn:"wait",view:{screen:"home",mod:null,b:null,filter:"all"}};
+try{const v=JSON.parse(localStorage.getItem("khz-view")||"null");if(v&&v.screen)Object.assign(S.view,v)}catch(e){}
+
+const $=s=>document.querySelector(s);
+const h=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pad=n=>String(n).padStart(2,"0");
+function todayISO(){const d=new Date();return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())}
+function P(s){const [y,m,d]=s.split("-").map(Number);return {y,m,d,t:Date.UTC(y,m-1,d)}}
+function diffDays(iso){return Math.round((P(iso).t-P(todayISO()).t)/864e5)}
+function wd(iso){return new Date(P(iso).t).getUTCDay()}
+function fmt(iso,opt){const p=P(iso);let s=pad(p.d)+" "+MON[p.m-1];if(opt==="day")s=DAY[wd(iso)]+" "+s;if(opt==="full")s=DAYL[wd(iso)]+", "+s+" "+p.y;return s}
+const plural=(n,w)=>n+" "+w+(n===1?"":"s");
+const key=it=>it.mod+"-"+it.id;
+function isDone(it){const x=S.status[key(it)];return !!(x&&x.done)}
+function status(it){if(isDone(it))return "done";const n=diffDays(it.due);return n<0?"late":n<=3?"soon":n<=7?"week":"later"}
+function countdown(it){
+  if(isDone(it)){const x=S.status[key(it)];return x.doneAt?"Delivered "+fmt(x.doneAt):"Delivered"}
+  const n=diffDays(it.due);
+  if(n<0)return plural(-n,"day")+" overdue";if(n===0)return "Due today";if(n===1)return "Due tomorrow";return plural(n,"day")+" left";
+}
+function countdownAr(it){
+  if(isDone(it))return "اتسلّم";
+  const n=diffDays(it.due);
+  if(n<0)return "متأخر "+daysAr(-n);if(n===0)return "النهارده";if(n===1)return "بكرة";return "باقي "+daysAr(n);
+}
+const cdBi=it=>bi(countdown(it),countdownAr(it));
+function dwgs(it){const x=S.status[key(it)];return x&&typeof x.dwgs==="number"?x.dwgs:it.dwgs}
+function itemsOf(mod){const s=S.sched[mod];return s&&Array.isArray(s.items)?s.items.map(i=>Object.assign({mod},i)):[]}
+function allItems(){return MODS.flatMap(itemsOf)}
+function stats(list){
+  const o={total:list.length,done:0,late:0,soon:0,week:0,later:0,dw:0,dwDone:0,next:null};
+  for(const it of list){const s=status(it);o[s]++;const d=dwgs(it)||0;o.dw+=d;if(s==="done")o.dwDone+=d;
+    if(s!=="done"&&s!=="late"&&(!o.next||it.due<o.next.due))o.next=it}
+  return o;
+}
+const pct=(a,b)=>b?Math.round(a/b*100):0;
+const modName=m=>"Module "+m.slice(1);
+const modAr=m=>"موديول "+m.slice(1);
+const elShort=e=>e==="COLUMNS & SHEAR WALLS"?"COLUMNS & S.W.":e;
+const meter=(s,big)=>`<div class="meter${big?" big":""}" title="${s.done} delivered · ${s.late} overdue"><i class="m-done" style="width:${pct(s.done,s.total)}%"></i><i class="m-late" style="width:${pct(s.late,s.total)}%"></i></div>`;
+const stat=(label,val,unit,sub,cls)=>`<div class="stat ${cls||""}"><span class="label">${label}</span><b>${val}${unit?`<em>${unit}</em>`:""}</b><small>${sub||"&nbsp;"}</small></div>`;
+function saveView(){try{localStorage.setItem("khz-view",JSON.stringify(S.view))}catch(e){}}
+function go(v){Object.assign(S.view,v);saveView();render();window.scrollTo({top:0})}
+const ICON_UP='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 11V2.5M4.5 6L8 2.5 11.5 6M2.5 11.5v2h11v-2"/></svg>';
+
+function statStrip(list,scopeTxt){
+  const s=stats(list);
+  return `<section class="stats" aria-label="Summary">
+    ${stat(bi("Packages","البنود"),s.total,"",scopeTxt)}
+    ${stat(bi("Delivered","اتسلّم"),s.done,"",pct(s.done,s.total)+"% of packages","okv")}
+    ${stat(bi("Overdue","متأخر"),s.late,"","past target, not delivered",s.late?"alert":"")}
+    ${stat(bi("Due in 7 days","خلال 7 أيام"),s.soon+s.week,"",s.soon+" within 3 days",s.soon?"warnv":"")}
+    ${stat(bi("Drawings","اللوحات"),s.dwDone,"/ "+s.dw,"delivered / expected")}
+  </section>`;
+}
+
+/* ---------- OVERVIEW ---------- */
+function renderHome(){
+  const all=allItems();const st=stats(all);
+  let html=`<div class="mhead"><div><h1>${bi("All modules","كل الموديولات")}</h1><p>${S.ready?(st.next?"Next delivery: <b>"+fmt(st.next.due,"full")+"</b> · "+modName(st.next.mod)+" · Building "+st.next.b+" · "+h(st.next.l)+" "+h(elShort(st.next.e))+" ("+PK[st.next.p]+")":(all.length?"No upcoming deliveries left.":"No schedules uploaded yet.")):"Loading the schedule…"}</p></div></div>`;
+  if(!S.ready){return html+`<div class="empty"><p>${S.conn==="off"?(S.connErr||"The schedule could not be loaded."):"Loading…"}</p></div>`}
+  html+=statStrip(all,MODS.filter(m=>itemsOf(m).length).length+" of 3 modules loaded");
+  const due=all.filter(it=>["late","soon","week"].includes(status(it))).sort((a,b)=>a.due.localeCompare(b.due)||a.mod.localeCompare(b.mod)||BLD.indexOf(a.b)-BLD.indexOf(b.b));
+  html+=`<section><div class="sec-head"><h2>${bi("Due now","عليه الدور")}</h2><p>${bi("Overdue packages plus everything due in the next 7 days, across all modules","المتأخر + كل اللي ميعاده خلال 7 أيام في كل الموديولات")}</p></div>`;
+  html+=due.length?logTable(due):`<div class="empty"><p>Nothing overdue and nothing due this week.${st.next?" Next delivery is "+fmt(st.next.due,"full")+".":""}</p></div>`;
+  html+=`</section><section><div class="sec-head"><h2>${bi("Modules","الموديولات")}</h2><p>${bi("Open a module to see buildings Z · A · B","افتح الموديول عشان تشوف المباني Z · A · B")}</p></div><div class="pgrid">`;
+  for(const m of MODS){
+    const list=itemsOf(m);
+    if(!list.length){html+=`<button type="button" class="panel nodata" data-go="${m}"><div class="card-top"><h3 class="proj-t">${bi(modName(m).toUpperCase(),modAr(m))}</h3><div class="bl-mini">${BLD.map(b=>`<span class="code">${b}</span>`).join("")}</div></div><p class="muted" style="margin:0">${bi("No schedule yet. Open the module and upload its Excel timeline.","لسه مفيش جدول — افتح الموديول وارفع شيت الإكسيل")}</p></button>`;continue}
+    const s=stats(list);
+    html+=`<button type="button" class="panel" data-go="${m}">
+      <div class="card-top"><h3 class="proj-t">${bi(modName(m).toUpperCase(),modAr(m))}</h3><div class="bl-mini">${BLD.map(b=>`<span class="code">${b}</span>`).join("")}</div></div>
+      <div class="prog"><div class="prog-top"><span class="label">${bi("Delivered","اتسلّم")}</span><span class="prog-pct num">${pct(s.done,s.total)}%</span></div>${meter(s,true)}</div>
+      <div class="kpis"><div class="kpi"><span>${bi("Packages","البنود")}</span><b>${s.done}/${s.total}</b></div><div class="kpi${s.late?" alert":""}"><span>${bi("Overdue","متأخر")}</span><b>${s.late}</b></div><div class="kpi"><span>${bi("Drawings","اللوحات")}</span><b>${s.dwDone}/${s.dw}</b></div></div>
+      <div class="nextline"><span class="plabel">${bi("Next delivery","أقرب تسليم")}</span>${s.next?`<span><b class="num">${fmt(s.next.due,"day")}</b> · ${s.next.b} · ${h(s.next.l)} ${h(elShort(s.next.e))} <span class="code">${PKC[s.next.p]}</span></span>`:`<span>${s.done===s.total?bi("All delivered","كله اتسلّم"):"—"}</span>`}</div>
+    </button>`;
+  }
+  return html+`</div></section>`;
+}
+function logTable(list){
+  let prev=null;
+  const rows=list.map(it=>{const s=status(it);const d=dwgs(it);const br=prev!==null&&prev!==it.due;prev=it.due;
+    return `<tr class="${s==="late"?"is-late ":""}${br?"daybreak":""}">
+      <td class="nowrap num"><b>${fmt(it.due)}</b><span class="sub">${DAYL[wd(it.due)]} · ${DAR[wd(it.due)]}</span></td>
+      <td class="nowrap"><span class="tag">${bi(modName(it.mod).toUpperCase(),modAr(it.mod))}</span></td>
+      <td class="nowrap"><span class="code">${it.b}</span></td>
+      <td class="nowrap"><b>${h(it.l)}</b></td>
+      <td>${h(it.e)}</td>
+      <td class="nowrap"><span class="code">${bi(PKC[it.p],PK_AR[it.p])}</span></td>
+      <td class="r num">${d??"—"}</td>
+      <td class="nowrap"><span class="pill ${SCLS[s]}">${cdBi(it)}</span></td>
+      <td class="r"><button type="button" class="btn small bi" data-open="${h(key(it))}">${S.canWrite===false?bi("View","عرض"):bi("Update","تحديث")}</button></td></tr>`}).join("");
+  return `<div class="tablewrap"><table class="log"><thead><tr><th>${bi("Target date","ميعاد التسليم")}</th><th>${bi("Module","الموديول")}</th><th>${bi("Bldg","المبنى")}</th><th>${bi("Level","الدور")}</th><th>${bi("Element","العنصر")}</th><th>${bi("Package","النوع")}</th><th class="r">${bi("Dwgs","لوحات")}</th><th>${bi("Status","الحالة")}</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+/* ---------- MODULE ---------- */
+function renderModule(){
+  const m=S.view.mod;const list=itemsOf(m);const sch=S.sched[m];
+  let html=`<div class="mhead"><div><h1>${bi(modName(m),modAr(m))}</h1><p>${sch&&sch.source?"Source: "+h(sch.source)+(sch.importedAt?" · uploaded "+fmt(sch.importedAt.slice(0,10)):""):(S.ready?"No schedule uploaded for this module yet.":"Loading…")}</p></div>
+    ${S.canWrite!==false&&S.ready?`<button type="button" class="btn${list.length?"":" primary"}" data-import>${ICON_UP}<span>${list.length?bi("Replace schedule (Excel)","تحديث الجدول من الإكسيل"):bi("Upload schedule (Excel)","رفع شيت المواعيد")}</span></button>`:""}</div>`;
+  if(!list.length)return html+`<div class="empty"><p>Upload the Excel timeline for ${modName(m)}. Use the same layout as the TIMELINE sheet: levels × elements, with Concrete Dimensions and Reinforcement columns per building. Drawing counts are picked up from a sheet with an EXP. NO. DWGS column.<span class="ar" lang="ar">ارفع شيت الإكسيل بنفس شكل شيت الـ TIMELINE (الأدوار × العناصر، ولكل مبنى خرسانة وتسليح) وهيتقرا تلقائي.</span></p></div>`;
+  html+=statStrip(list,"Buildings "+[...new Set(list.map(i=>i.b))].join(" · "));
+  const blds=BLD.filter(b=>list.some(i=>i.b===b)).concat([...new Set(list.map(i=>i.b))].filter(b=>!BLD.includes(b)));
+  if(!S.view.b||!blds.includes(S.view.b))S.view.b=blds[0];
+  html+=`<section><div class="sec-head"><h2>${bi("Buildings","المباني")}</h2><p>${bi("Select a building to see its levels","اختار المبنى عشان تشوف أدواره")}</p></div><div class="bgrid">`;
+  for(const b of blds){
+    const bl=list.filter(i=>i.b===b);const s=stats(bl);const lv=LEVELS.filter(l=>bl.some(i=>i.l===l));
+    html+=`<button type="button" class="bcard" data-b="${b}" aria-pressed="${S.view.b===b}">
+      <div class="bhead"><span class="bletter">${b}</span><div><b>${bi("BUILDING "+b,"مبنى "+b)}</b><span>${plural(lv.length,"level")} · ${h(lv[0]||"")} → ${h(lv[lv.length-1]||"")}</span></div></div>
+      <div class="prog"><div class="prog-top"><span class="label">${bi("Delivered","اتسلّم")}</span><span class="num"><b>${pct(s.done,s.total)}%</b></span></div>${meter(s)}</div>
+      <div class="kpis"><div class="kpi"><span>${bi("Packages","البنود")}</span><b>${s.done}/${s.total}</b></div><div class="kpi${s.late?" alert":""}"><span>${bi("Overdue","متأخر")}</span><b>${s.late}</b></div><div class="kpi"><span>${bi("Drawings","اللوحات")}</span><b>${s.dwDone}/${s.dw}</b></div></div>
+      <div class="nextline"><span class="plabel">${bi("Next","أقرب تسليم")}</span>${s.next?`<span><b class="num">${fmt(s.next.due,"day")}</b> · ${h(s.next.l)} ${h(elShort(s.next.e))} <span class="code">${PKC[s.next.p]}</span></span>`:`<span>${s.done===s.total?bi("All delivered","كله اتسلّم"):"—"}</span>`}</div>
+    </button>`;
+  }
+  html+=`</div></section>`;
+  const bl=list.filter(i=>i.b===S.view.b);
+  const inF=(it,f)=>{const s=status(it);return f==="all"||(f==="soon"?(s==="soon"||s==="week"):s===f)};
+  const F=[["all",bi("All","الكل")],["late",bi("Overdue","متأخر")],["soon",bi("Due in 7 days","خلال 7 أيام")],["later",bi("Upcoming","قادم")],["done",bi("Delivered","اتسلّم")]];
+  html+=`<section id="matrix"><div class="sec-head"><h2>${bi("Building "+S.view.b+" · Levels &amp; elements","مبنى "+S.view.b+" · الأدوار والعناصر")}</h2><p>${bi("Click any package to mark it delivered or set its drawing count","اضغط على أي خانة عشان تعلّمها اتسلّمت أو تعدّل عدد اللوحات")}</p></div>
+    <div class="fbar"><span class="label">${bi("Show","عرض")}</span><div class="seg" role="group" aria-label="Filter">${F.map(([k,t])=>`<button type="button" data-f="${k}" aria-pressed="${S.view.filter===k}">${t}<small>${bl.filter(i=>inF(i,k)).length}</small></button>`).join("")}</div>
+    <div class="legend">${["late","soon","week","later","done"].map(k=>`<span><i class="dot ${SCLS[k]}"></i><span>${bi(ST[k],ST_AR[k])}</span></span>`).join("")}</div></div></section>`;
+  const lvls=LEVELS.filter(l=>bl.some(i=>i.l===l)).concat([...new Set(bl.map(i=>i.l))].filter(l=>!LEVELS.includes(l)));
+  let body="";
+  for(const l of lvls){
+    const li=bl.filter(i=>i.l===l);const s=stats(li);
+    const els=ELS.filter(e=>li.some(i=>i.e===e)).concat([...new Set(li.map(i=>i.e))].filter(e=>!ELS.includes(e)));
+    const rows=els.map(e=>{const c=li.find(i=>i.e===e&&i.p==="CONC"),r=li.find(i=>i.e===e&&i.p==="RFT");
+      const f=S.view.filter;if(!((c&&inF(c,f))||(r&&inF(r,f))))return "";
+      return `<tr><td class="el">${h(e)}</td><td class="cellw">${cellHtml(c,f,inF)}</td><td class="cellw">${cellHtml(r,f,inF)}</td></tr>`}).join("");
+    if(!rows)continue;
+    const dates=li.map(i=>i.due).sort();
+    body+=`<tr class="lvl"><td colspan="3"><div class="lvl-in"><h3>${h(l)}${s.late?` <span class="pill bad">${bi(s.late+" overdue",s.late+" متأخر")}</span>`:""}</h3><div class="lvl-meta"><span class="num">${fmt(dates[0])} → ${fmt(dates[dates.length-1])}</span><span class="num">${s.done}/${s.total} delivered</span><span class="num">${s.dw} dwgs</span>${meter(s)}</div></div></td></tr>${rows}`;
+  }
+  html+=body?`<div class="tablewrap" style="margin-top:-10px"><table class="mx"><colgroup><col class="c-el"><col><col></colgroup><thead><tr><th>${bi("Element","العنصر")}</th><th>${bi("Concrete","خرسانة")}<small>Concrete dimensions</small></th><th>${bi("Reinforcement","تسليح")}<small>RFT detailing</small></th></tr></thead><tbody>${body}</tbody></table></div>`:`<div class="empty"><p>No packages match this filter.</p></div>`;
+  return html;
+}
+function cellHtml(it,f,inF){
+  if(!it)return `<span class="na">— not in scope<span class="ar">خارج النطاق</span></span>`;
+  if(!inF(it,f))return `<span class="na">&nbsp;</span>`;
+  const s=status(it);const d=dwgs(it);
+  return `<button type="button" class="cell ${s}" data-pk="${PKC[it.p]} · ${PK_AR[it.p]}" data-open="${h(key(it))}" aria-label="${h(it.l+" "+it.e+" "+PK[it.p])}">
+    <span class="l1"><span class="dt">${fmt(it.due,"day")}</span><span class="pill ${SCLS[s]}">${bi(ST[s],ST_AR[s])}</span></span>
+    <span class="l2"><span class="cd">${cdBi(it)}</span><span class="num">${d!=null?plural(d,"dwg"):"— dwgs"}</span></span></button>`;
+}
+
+/* ---------- DIALOGS ---------- */
+let onSave=null;
+function layer(inner,save){onSave=save;$("#layer").innerHTML=`<div class="scrim" data-scrim>${inner}</div>`;const f=$("#layer").querySelector("input,select,.btn.primary,.btn");f&&f.focus()}
+function closeLayer(){const was=!!$("#layer").innerHTML;$("#layer").innerHTML="";onSave=null;if(was)render()}
+let tt;function toast(t){const el=$("#toast");el.textContent=t;el.hidden=false;clearTimeout(tt);tt=setTimeout(()=>{el.hidden=true},3200)}
+function openItem(k){
+  const it=allItems().find(x=>key(x)===k);if(!it)return;
+  const s=status(it);const x=S.status[k]||{};const d=dwgs(it);
+  const ro=S.canWrite===false||!S.db;
+  layer(`<div class="dlg" role="dialog" aria-modal="true" aria-labelledby="dlgT">
+    <div class="dlg-h"><small>${modName(it.mod).toUpperCase()} · BUILDING ${it.b} · ${PK[it.p].toUpperCase()}<span class="ar">${modAr(it.mod)} · مبنى ${it.b} · ${PK_AR[it.p]}</span></small><h3 id="dlgT">${h(it.l)} · ${h(it.e)}</h3></div>
+    <div class="dlg-b">
+      <div class="field"><span>${bi("Target date","ميعاد التسليم")}</span><output class="num">${fmt(it.due,"full")}<span class="ar">${DAR[wd(it.due)]}</span></output></div>
+      <div class="field"><span>${bi("Status","الحالة")}</span><output><span class="pill ${SCLS[s]}">${cdBi(it)}</span></output></div>
+      ${it.dwgs!=null?`<div class="field"><span>${bi("Drawings in Excel","اللوحات في الشيت")}</span><output class="num">${it.dwgs}</output></div>`:""}
+      ${ro?`<div class="field"><span>${bi("Expected drawings","عدد اللوحات المتوقع")}</span><output class="num">${d??"—"}</output></div>`:`<label class="field"><span>${bi("Expected drawings","عدد اللوحات المتوقع")}</span><input id="fDw" type="number" min="0" step="1" inputmode="numeric" value="${d??""}" placeholder="e.g. 8"></label>`}
+      ${it.note?`<div class="note full">${h(it.note)}</div>`:""}
+      ${ro?`<p class="muted full" style="margin:0;font-size:13px">${S.db?bi("You have view-only access.","عندك صلاحية عرض بس."):bi("Editing is not available in this view.","التعديل مش متاح هنا.")}</p>`:
+      `<label class="field"><span>${bi("Delivery date","تاريخ التسليم")}</span><input id="fDoneAt" type="date" value="${x.doneAt||todayISO()}"></label>
+       <div class="field"><span>${bi("Delivered?","اتسلّم؟")}</span><output>${s==="done"?bi("Yes — "+fmt(x.doneAt||todayISO(),"day"),"أيوه"):bi("Not yet","لسه")}</output></div>`}
+    </div>
+    <div class="dlg-f"><p class="err" id="dlgErr" role="alert"></p>
+      ${ro?`<button type="button" class="btn bi" data-close>${bi("Close","إغلاق")}</button>`:`${s==="done"?`<button type="button" class="btn danger left bi" data-save="undo">${bi("Mark not delivered","إلغاء التسليم")}</button>`:""}<button type="button" class="btn bi" data-close>${bi("Cancel","إلغاء")}</button><button type="button" class="btn bi" data-save="keep">${bi("Save drawings","حفظ اللوحات")}</button><button type="button" class="btn primary bi" data-save="done">${s==="done"?bi("Update delivery","تحديث التسليم"):bi("Mark delivered","تم التسليم")}</button>`}
+    </div></div>`,async btn=>{
+    const mode=btn.dataset.save;const dwIn=$("#fDw").value.trim();const doneAt=$("#fDoneAt").value||todayISO();
+    const prev=S.status[k]||{};const next={item:it.id,mod:it.mod,updatedAt:new Date().toISOString()};
+    if(dwIn!=="")next.dwgs=Math.max(0,Math.round(+dwIn));
+    if(mode==="done"){next.done=true;next.doneAt=doneAt}else if(mode==="undo"){next.done=false}else if(prev.done){next.done=true;next.doneAt=prev.doneAt}else next.done=false;
+    try{await S.db.collection("status").doc(k).set(next);closeLayer();toast(mode==="done"?"Marked delivered · اتعلّم إنه اتسلّم":mode==="undo"?"Marked not delivered · اتلغى التسليم":"Saved · اتحفظ")}
+    catch(e){$("#dlgErr").textContent=e&&e.code==="invalid_argument"?"You don't have permission to edit.":"Not saved. Try again.";if(e&&e.code==="invalid_argument")S.canWrite=false}
+  });
+}
+
+/* ---------- EXCEL IMPORT ---------- */
+function loadXLSX(){return window.XLSX?Promise.resolve(window.XLSX):new Promise((res,rej)=>{const s=document.createElement("script");s.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";s.onload=()=>res(window.XLSX);s.onerror=()=>rej(new Error("load"));document.head.appendChild(s)})}
+//PARSER-START
+function parseWorkbook(XLSX,wb){
+  const LV={GEOUND:"GROUND","GRAOUND":"GROUND"};
+  const iso=(y,m,d)=>(m>=1&&m<=12&&d>=1&&d<=31)?y+"-"+String(m).padStart(2,"0")+"-"+String(d).padStart(2,"0"):null;
+  const cell=(ws,r,c)=>ws[XLSX.utils.encode_cell({r:r-1,c:c-1})];
+  const txt=x=>x&&x.v!=null?String(x.v).trim():"";
+  function walk(ws){
+    if(!ws||!ws["!ref"])return null;
+    const ref=XLSX.utils.decode_range(ws["!ref"]);const maxR=ref.e.r+1,maxC=ref.e.c+1;
+    const cols=[];let cur=null;
+    for(let c=3;c<=maxC;c+=2){
+      const hd=txt(cell(ws,1,c));
+      if(/BUILDING|BLDG|مبنى/i.test(hd)){const m=hd.match(/\(\s*([A-Z0-9]+)\s*\)/i)||hd.match(/(?:BUILDING|BLDG)\s*([A-Z0-9]+)/i);cur=m?m[1].toUpperCase():hd}
+      if(!cur)continue;
+      const pk=txt(cell(ws,2,c));if(!pk)continue;
+      cols.push({c,b:cur,p:/REINF|RFT|تسليح/i.test(pk)?"RFT":"CONC",sub:txt(cell(ws,3,c+1))});
+    }
+    if(!cols.length)return null;
+    const rows=[];let lvl=null;
+    for(let r=4;r<=maxR;r++){
+      const a=txt(cell(ws,r,1));if(a)lvl=LV[a.toUpperCase()]||a.toUpperCase();
+      const el=txt(cell(ws,r,2));if(!el||!lvl)continue;
+      for(const k of cols)rows.push({b:k.b,l:lvl,e:el.toUpperCase().replace(/\s+/g," "),p:k.p,dc:cell(ws,r,k.c),sc:cell(ws,r,k.c+1),sub:k.sub});
+    }
+    return rows;
+  }
+  const sheets=wb.SheetNames.map(n=>({n,rows:walk(wb.Sheets[n])})).filter(s=>s.rows);
+  if(!sheets.length)throw new Error("format");
+  const textDate=x=>x&&x.t==="s"&&/^\s*\d{1,2}\/\d{1,2}\/\d{4}/.test(x.v);
+  const isDate=x=>x&&((x.t==="n"&&x.v>30000&&x.v<80000)||x.t==="d"||textDate(x));
+  const score=s=>s.rows.filter(r=>isDate(r.dc)).length+(/TIMELINE|SCHEDULE/i.test(s.n)?1000:0);
+  const dsh=sheets.slice().sort((a,b)=>score(b)-score(a))[0];
+  // Excel misread dd/mm as mm/dd whenever the sheet also holds text dates like 25/10/2026
+  const swap=dsh.rows.some(r=>textDate(r.dc)&&+r.dc.v.match(/^\s*(\d{1,2})/)[1]>12);
+  function toISO(x){
+    if(!x)return null;
+    if(x.t==="n"){const d=XLSX.SSF.parse_date_code(x.v);if(!d)return null;return (swap&&d.d<=12)?iso(d.y,d.d,d.m):iso(d.y,d.m,d.d)}
+    if(x.t==="d"){const d=new Date(x.v);return iso(d.getFullYear(),d.getMonth()+1,d.getDate())}
+    if(x.t==="s"){const m=x.v.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);if(m)return iso(+m[3],+m[2],+m[1]);const m2=x.v.match(/(\d{4})-(\d{2})-(\d{2})/);if(m2)return iso(+m2[1],+m2[2],+m2[3])}
+    return null;
+  }
+  const k4=r=>r.b+"|"+r.l+"|"+r.e+"|"+r.p;
+  const counts={};
+  for(const s of sheets)for(const r of s.rows){if(/NO|DWG|عدد/i.test(r.sub)&&r.sc&&r.sc.t==="n"&&r.sc.v>=0&&r.sc.v<1000)counts[k4(r)]=r.sc.v}
+  const items=[];const seen=new Set();
+  for(const r of dsh.rows){
+    const due=toISO(r.dc);if(!due)continue;
+    const id=r.b+"-"+r.l.replace(/ /g,"_")+"-"+r.e.split(/\s/)[0].replace(/&/g,"")+"-"+r.p;
+    if(seen.has(id))continue;seen.add(id);
+    let dw=counts[k4(r)];if(dw==null&&r.sc&&r.sc.t==="n"&&/NO|DWG/i.test(r.sub))dw=r.sc.v;
+    const note=(/NOTE|ملاحظ/i.test(r.sub)&&r.sc&&r.sc.t==="s")?String(r.sc.v).trim():"";
+    items.push({id,b:r.b,l:r.l,e:r.e,p:r.p,due,dwgs:dw==null?null:dw,note});
+  }
+  return {items,sheet:dsh.n,swapped:swap};
+}
+//PARSER-END
+async function importFile(file){
+  let XLSX;try{XLSX=await loadXLSX()}catch(e){toast("Couldn't load the Excel reader. Try again.");return}
+  let res;
+  try{res=parseWorkbook(XLSX,XLSX.read(await file.arrayBuffer(),{type:"array"}))}catch(e){toast("This file isn't in the expected timeline layout.");return}
+  if(!res.items.length){toast("No target dates found in this file.");return}
+  const it=res.items;const dates=it.map(i=>i.due).sort();const bl=[...new Set(it.map(i=>i.b))];
+  const target=S.view.mod||"M1";
+  layer(`<div class="dlg" role="dialog" aria-modal="true" aria-labelledby="impT">
+    <div class="dlg-h"><small>EXCEL TIMELINE</small><h3 id="impT">${bi("Review before saving","مراجعة قبل الحفظ")}</h3></div>
+    <div class="dlg-b">
+      <div class="field full"><span>${bi("File","الملف")}</span><output>${h(file.name)}</output></div>
+      <div class="field"><span>${bi("Dates read from sheet","شيت المواعيد")}</span><output>${h(res.sheet)}</output></div>
+      <div class="field"><span>${bi("Packages","البنود")}</span><output class="num">${it.length}</output></div>
+      <div class="field"><span>${bi("Buildings","المباني")}</span><output>${bl.join(" · ")}</output></div>
+      <div class="field"><span>${bi("Date range","الفترة")}</span><output class="num">${fmt(dates[0])} → ${fmt(dates[dates.length-1])}</output></div>
+      <div class="field"><span>${bi("With drawing counts","بنود بعدد لوحات")}</span><output class="num">${it.filter(i=>i.dwgs!=null).length}</output></div>
+      <label class="field"><span>${bi("Save to","احفظه في")}</span><select id="impMod">${MODS.map(m=>`<option value="${m}"${m===target?" selected":""}>${modName(m)}${itemsOf(m).length?" (replaces current)":""}</option>`).join("")}</select></label>
+      <p class="muted full" style="margin:0;font-size:12.5px">Packages already marked delivered keep their status when you replace a schedule.<span class="ar">البنود اللي اتعلّمت إنها اتسلّمت هتفضل زي ما هي.</span></p>
+    </div>
+    <div class="dlg-f"><p class="err" id="dlgErr" role="alert"></p><button type="button" class="btn bi" data-close>${bi("Cancel","إلغاء")}</button><button type="button" class="btn primary bi" data-save="imp">${bi("Save schedule","حفظ الجدول")}</button></div></div>`,async()=>{
+      const m=$("#impMod").value;
+      try{await S.db.collection("schedules").doc(m).set({module:m,source:file.name,sheet:res.sheet,importedAt:new Date().toISOString(),items:it});closeLayer();toast(modName(m)+" schedule saved");go({screen:"mod",mod:m,filter:"all"})}
+      catch(e){$("#dlgErr").textContent=e&&e.code==="invalid_argument"?"You don't have permission to upload schedules.":"Not saved. Try again."}
+    });
+}
+
+/* ---------- RENDER + EVENTS ---------- */
+function render(){
+  const t=todayISO();$("#asof").innerHTML="Today · "+fmt(t,"full")+'<span class="ar">النهارده · '+DAR[wd(t)]+"</span>";
+  const v=S.view;const cur=v.screen==="mod"?v.mod:"home";
+  $("#views").innerHTML=`<button type="button" class="exec" data-home aria-pressed="${cur==="home"}">${bi("Overview","الملخص")}</button>`+MODS.map(m=>`<button type="button" data-go="${m}" aria-pressed="${cur===m}">${bi(modName(m),modAr(m))}</button>`).join("");
+  const c=$("#conn");c.className="conn "+(S.conn==="live"?"live":S.conn==="off"?"off":"");c.lastElementChild.textContent=S.conn==="live"?(S.store==="supabase"?"Live · Shared":"This device only · على الجهاز ده"):S.conn==="off"?"Offline · غير متصل":"Connecting…";
+  $("#app").innerHTML=v.screen==="mod"&&v.mod?renderModule():renderHome();
+}
+document.addEventListener("click",e=>{
+  const t=e.target.closest("button,[data-scrim]");if(!t)return;
+  if(t.matches("[data-scrim]")){if(e.target===t)closeLayer();return}
+  if(t.dataset.go)return go({screen:"mod",mod:t.dataset.go,filter:"all"});
+  if(t.hasAttribute("data-home"))return go({screen:"home"});
+  if(t.dataset.b){S.view.b=t.dataset.b;saveView();render();const m=$("#matrix");m&&m.scrollIntoView({behavior:"smooth",block:"start"});return}
+  if(t.dataset.f){S.view.filter=t.dataset.f;saveView();render();return}
+  if(t.dataset.open)return openItem(t.dataset.open);
+  if(t.hasAttribute("data-close"))return closeLayer();
+  if(t.dataset.save&&onSave){t.disabled=true;Promise.resolve(onSave(t)).finally(()=>{t.disabled=false});return}
+  if(t.hasAttribute("data-import")){if(!S.db){toast("Uploading isn't available in this view.");return}$("#xlsIn").value="";$("#xlsIn").click()}
+});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeLayer()});
+$("#xlsIn").addEventListener("change",e=>{const f=e.target.files[0];if(f)importFile(f)});
+setInterval(()=>{if(!$("#layer").innerHTML)render()},30*60*1000);
+
+render();
+/* ================= DATA STORE =================
+   Leave both values empty  → data is saved in this browser only.
+   Fill both (Supabase → Project Settings → API) → shared, live for the whole team.
+   Run the SQL in README.md once in Supabase → SQL Editor before using it. */
+const CONFIG={SUPABASE_URL:"",SUPABASE_ANON_KEY:""};
+const SEED={M1:{"module": "M1", "source": "SUSTRA_KHUZAM_TIMLINE_INTERNAL_22-9-2026.xlsx", "sheet": "TIMELINE", "importedAt": "2026-10-10T12:24:04.190Z", "items": [{"id": "Z-GROUND-SOG-CONC", "b": "Z", "l": "GROUND", "e": "SOG", "p": "CONC", "due": "2026-10-08", "dwgs": null, "note": ""}, {"id": "Z-GROUND-SOG-RFT", "b": "Z", "l": "GROUND", "e": "SOG", "p": "RFT", "due": "2026-10-14", "dwgs": 6, "note": ""}, {"id": "Z-GROUND-COLUMNS-CONC", "b": "Z", "l": "GROUND", "e": "COLUMNS & SHEAR WALLS", "p": "CONC", "due": "2026-10-11", "dwgs": null, "note": ""}, {"id": "Z-GROUND-COLUMNS-RFT", "b": "Z", "l": "GROUND", "e": "COLUMNS & SHEAR WALLS", "p": "RFT", "due": "2026-10-19", "dwgs": 15, "note": ""}, {"id": "Z-GROUND-COREWALL-CONC", "b": "Z", "l": "GROUND", "e": "COREWALL", "p": "CONC", "due": "2026-10-10", "dwgs": null, "note": ""}, {"id": "Z-GROUND-COREWALL-RFT", "b": "Z", "l": "GROUND", "e": "COREWALL", "p": "RFT", "due": "2026-10-13", "dwgs": 8, "note": ""}, {"id": "Z-GROUND-BEAMS-CONC", "b": "Z", "l": "GROUND", "e": "BEAMS", "p": "CONC", "due": "2026-10-08", "dwgs": null, "note": ""}, {"id": "Z-GROUND-BEAMS-RFT", "b": "Z", "l": "GROUND", "e": "BEAMS", "p": "RFT", "due": "2026-10-22", "dwgs": 16, "note": ""}, {"id": "Z-GROUND-STAIRS-CONC", "b": "Z", "l": "GROUND", "e": "STAIRS", "p": "CONC", "due": "2026-10-12", "dwgs": null, "note": ""}, {"id": "Z-GROUND-STAIRS-RFT", "b": "Z", "l": "GROUND", "e": "STAIRS", "p": "RFT", "due": "2026-10-15", "dwgs": 8, "note": ""}, {"id": "Z-FIRST-SLAB-CONC", "b": "Z", "l": "FIRST", "e": "SLAB", "p": "CONC", "due": "2026-10-18", "dwgs": null, "note": ""}, {"id": "Z-FIRST-SLAB-RFT", "b": "Z", "l": "FIRST", "e": "SLAB", "p": "RFT", "due": "2026-10-29", "dwgs": 14, "note": ""}, {"id": "Z-FIRST-COLUMNS-CONC", "b": "Z", "l": "FIRST", "e": "COLUMNS & SHEAR WALLS", "p": "CONC", "due": "2026-10-25", "dwgs": null, "note": ""}, {"id": "Z-FIRST-COLUMNS-RFT", "b": "Z", "l": "FIRST", "e": "COLUMNS & SHEAR WALLS", "p": "RFT", "due": "2026-10-28", "dwgs": 12, "note": ""}, {"id": "Z-FIRST-COREWALL-CONC", "b": "Z", "l": "FIRST", "e": "COREWALL", "p": "CONC", "due": "2026-10-15", "dwgs": null, "note": ""}, {"id": "Z-FIRST-COREWALL-RFT", "b": "Z", "l": "FIRST", "e": "COREWALL", "p": "RFT", "due": "2026-10-25", "dwgs": 8, "note": ""}, {"id": "Z-FIRST-BEAMS-CONC", "b": "Z", "l": "FIRST", "e": "BEAMS", "p": "CONC", "due": "2026-10-18", "dwgs": null, "note": ""}, {"id": "Z-FIRST-BEAMS-RFT", "b": "Z", "l": "FIRST", "e": "BEAMS", "p": "RFT", "due": "2026-10-31", "dwgs": 18, "note": ""}, {"id": "Z-FIRST-STAIRS-CONC", "b": "Z", "l": "FIRST", "e": "STAIRS", "p": "CONC", "due": "2026-10-22", "dwgs": null, "note": ""}, {"id": "Z-FIRST-STAIRS-RFT", "b": "Z", "l": "FIRST", "e": "STAIRS", "p": "RFT", "due": "2026-10-27", "dwgs": 8, "note": ""}, {"id": "Z-FIRST-POOL-CONC", "b": "Z", "l": "FIRST", "e": "POOL", "p": "CONC", "due": "2026-10-25", "dwgs": null, "note": ""}, {"id": "Z-FIRST-POOL-RFT", "b": "Z", "l": "FIRST", "e": "POOL", "p": "RFT", "due": "2026-10-27", "dwgs": 5, "note": ""}, {"id": "A-SECOND-SLAB-CONC", "b": "A", "l": "SECOND", "e": "SLAB", "p": "CONC", "due": "2026-11-02", "dwgs": null, "note": ""}, {"id": "A-SECOND-SLAB-RFT", "b": "A", "l": "SECOND", "e": "SLAB", "p": "RFT", "due": "2026-11-07", "dwgs": 7, "note": ""}, {"id": "B-SECOND-SLAB-CONC", "b": "B", "l": "SECOND", "e": "SLAB", "p": "CONC", "due": "2026-11-04", "dwgs": null, "note": ""}, {"id": "B-SECOND-SLAB-RFT", "b": "B", "l": "SECOND", "e": "SLAB", "p": "RFT", "due": "2026-11-12", "dwgs": 7, "note": ""}, {"id": "A-SECOND-COLUMNS-CONC", "b": "A", "l": "SECOND", "e": "COLUMNS & SHEAR WALLS", "p": "CONC", "due": "2026-11-02", "dwgs": null, "note": ""}, {"id": "A-SECOND-COLUMNS-RFT", "b": "A", "l": "SECOND", "e": "COLUMNS & SHEAR WALLS", "p": "RFT", "due": "2026-11-05", "dwgs": 7, "note": ""}, {"id": "B-SECOND-COLUMNS-CONC", "b": "B", "l": "SECOND", "e": "COLUMNS & SHEAR WALLS", "p": "CONC", "due": "2026-11-04", "dwgs": null, "note": ""}, {"id": "B-SECOND-COLUMNS-RFT", "b": "B", "l": "SECOND", "e": "COLUMNS & SHEAR WALLS", "p": "RFT", "due": "2026-11-10", "dwgs": 7, "note": ""}, {"id": "A-SECOND-COREWALL-CONC", "b": "A", "l": "SECOND", "e": "COREWALL", "p": "CONC", "due": "2026-11-01", "dwgs": null, "note": ""}, {"id": "A-SECOND-COREWALL-RFT", "b": "A", "l": "SECOND", "e": "COREWALL", "p": "RFT", "due": "2026-11-04", "dwgs": 5, "note": ""}, {"id": "B-SECOND-COREWALL-CONC", "b": "B", "l": "SECOND", "e": "COREWALL", "p": "CONC", "due": "2026-11-03", "dwgs": null, "note": ""}, {"id": "B-SECOND-COREWALL-RFT", "b": "B", "l": "SECOND", "e": "COREWALL", "p": "RFT", "due": "2026-11-08", "dwgs": 5, "note": ""}, {"id": "A-SECOND-BEAMS-CONC", "b": "A", "l": "SECOND", "e": "BEAMS", "p": "CONC", "due": "2026-11-02", "dwgs": null, "note": ""}, {"id": "A-SECOND-BEAMS-RFT", "b": "A", "l": "SECOND", "e": "BEAMS", "p": "RFT", "due": "2026-11-08", "dwgs": 8, "note": ""}, {"id": "B-SECOND-BEAMS-CONC", "b": "B", "l": "SECOND", "e": "BEAMS", "p": "CONC", "due": "2026-11-04", "dwgs": null, "note": ""}, {"id": "B-SECOND-BEAMS-RFT", "b": "B", "l": "SECOND", "e": "BEAMS", "p": "RFT", "due": "2026-11-14", "dwgs": 8, "note": ""}, {"id": "A-SECOND-STAIRS-CONC", "b": "A", "l": "SECOND", "e": "STAIRS", "p": "CONC", "due": "2026-11-03", "dwgs": null, "note": ""}, {"id": "A-SECOND-STAIRS-RFT", "b": "A", "l": "SECOND", "e": "STAIRS", "p": "RFT", "due": "2026-11-05", "dwgs": 5, "note": ""}, {"id": "B-SECOND-STAIRS-CONC", "b": "B", "l": "SECOND", "e": "STAIRS", "p": "CONC", "due": "2026-11-08", "dwgs": null, "note": ""}, {"id": "B-SECOND-STAIRS-RFT", "b": "B", "l": "SECOND", "e": "STAIRS", "p": "RFT", "due": "2026-11-09", "dwgs": 5, "note": ""}, {"id": "A-THIRD-SLAB-CONC", "b": "A", "l": "THIRD", "e": "SLAB", "p": "CONC", "due": "2026-11-10", "dwgs": null, "note": ""}, {"id": "A-THIRD-SLAB-RFT", "b": "A", "l": "THIRD", "e": "SLAB", "p": "RFT", "due": "2026-11-12", "dwgs": 7, "note": ""}, {"id": "B-THIRD-SLAB-CONC", "b": "B", "l": "THIRD", "e": "SLAB", "p": "CONC", "due": "2026-11-15", "dwgs": null, "note": ""}, {"id": "B-THIRD-SLAB-RFT", "b": "B", "l": "THIRD", "e": "SLAB", "p": "RFT", "due": "2026-11-19", "dwgs": 7, "note": ""}, {"id": "A-THIRD-COLUMNS-CONC", "b": "A", "l": "THIRD", "e": "COLUMNS & SHEAR WALLS", "p": "CONC", "due": "2026-11-10", "dwgs": null, "note": ""}, {"id": "A-THIRD-COLUMNS-RFT", "b": "A", "l": "THIRD", "e": "COLUMNS & SHEAR WALLS", "p": "RFT", "due": "2026-11-11", "dwgs": 7, "note": ""}, {"id": "B-THIRD-COLUMNS-CONC", "b": "B", "l": "THIRD", "e": "COLUMNS & SHEAR WALLS", "p": "CONC", "due": "2026-11-12", "dwgs": null, "note": ""}, {"id": "B-THIRD-COLUMNS-RFT", "b": "B", "l": "THIRD", "e": "COLUMNS & SHEAR WALLS", "p": "RFT", "due": "2026-11-17", "dwgs": 7, "note": ""}, {"id": "A-THIRD-COREWALL-CONC", "b": "A", "l": "THIRD", "e": "COREWALL", "p": "CONC", "due": "2026-11-08", "dwgs": null, "note": ""}, {"id": "A-THIRD-COREWALL-RFT", "b": "A", "l": "THIRD", "e": "COREWALL", "p": "RFT", "due": "2026-11-10", "dwgs": 5, "note": ""}, {"id": "B-THIRD-COREWALL-CONC", "b": "B", "l": "THIRD", "e": "COREWALL", "p": "CONC", "due": "2026-11-12", "dwgs": null, "note": ""}, {"id": "B-THIRD-COREWALL-RFT", "b": "B", "l": "THIRD", "e": "COREWALL", "p": "RFT", "due": "2026-11-15", "dwgs": 5, "note": ""}, {"id": "A-THIRD-BEAMS-CONC", "b": "A", "l": "THIRD", "e": "BEAMS", "p": "CONC", "due": "2026-11-10", "dwgs": null, "note": ""}, {"id": "A-THIRD-BEAMS-RFT", "b": "A", "l": "THIRD", "e": "BEAMS", "p": "RFT", "due": "2026-11-14", "dwgs": 8, "note": ""}, {"id": "B-THIRD-BEAMS-CONC", "b": "B", "l": "THIRD", "e": "BEAMS", "p": "CONC", "due": "2026-11-15", "dwgs": null, "note": ""}, {"id": "B-THIRD-BEAMS-RFT", "b": "B", "l": "THIRD", "e": "BEAMS", "p": "RFT", "due": "2026-11-21", "dwgs": 8, "note": ""}, {"id": "A-THIRD-STAIRS-CONC", "b": "A", "l": "THIRD", "e": "STAIRS", "p": "CONC", "due": "2026-11-10", "dwgs": null, "note": ""}, {"id": "A-THIRD-STAIRS-RFT", "b": "A", "l": "THIRD", "e": "STAIRS", "p": "RFT", "due": "2026-11-12", "dwgs": 5, "note": ""}, {"id": "B-THIRD-STAIRS-CONC", "b": "B", "l": "THIRD", "e": "STAIRS", "p": "CONC", "due": "2026-11-10", "dwgs": null, "note": ""}, {"id": "B-THIRD-STAIRS-RFT", "b": "B", "l": "THIRD", "e": "STAIRS", "p": "RFT", "due": "2026-11-15", "dwgs": 5, "note": ""}, {"id": "A-FOURTH-SLAB-CONC", "b": "A", "l": "FOURTH", "e": "SLAB", "p": "CONC", "due": "2026-11-17", "dwgs": null, "note": ""}, {"id": "A-FOURTH-SLAB-RFT", "b": "A", "l": "FOURTH", "e": "SLAB", "p": "RFT", "due": "2026-11-19", "dwgs": 7, "note": ""}, {"id": "B-FOURTH-SLAB-CONC", "b": "B", "l": "FOURTH", "e": "SLAB", "p": "CONC", "due": "2026-11-19", "dwgs": null, "note": ""}, {"id": "B-FOURTH-SLAB-RFT", "b": "B", "l": "FOURTH", "e": "SLAB", "p": "RFT", "due": "2026-11-26", "dwgs": 7, "note": ""}, {"id": "A-FOURTH-COLUMNS-CONC", "b": "A", "l": "FOURTH", "e": "COLUMNS & SHEAR WALLS", "p": "CONC", "due": "2026-11-16", "dwgs": null, "note": ""}, {"id": "A-FOURTH-COLUMNS-RFT", "b": "A", "l": "FOURTH", "e": "COLUMNS & SHEAR WALLS", "p": "RFT", "due": "2026-11-19", "dwgs": 7, "note": ""}, {"id": "B-FOURTH-COLUMNS-CONC", "b": "B", "l": "FOURTH", "e": "COLUMNS & SHEAR WALLS", "p": "CONC", "due": "2026-11-19", "dwgs": null, "note": ""}, {"id": "B-FOURTH-COLUMNS-RFT", "b": "B", "l": "FOURTH", "e": "COLUMNS & SHEAR WALLS", "p": "RFT", "due": "2026-11-25", "dwgs": 7, "note": ""}, {"id": "A-FOURTH-COREWALL-CONC", "b": "A", "l": "FOURTH", "e": "COREWALL", "p": "CONC", "due": "2026-11-15", "dwgs": null, "note": ""}, {"id": "A-FOURTH-COREWALL-RFT", "b": "A", "l": "FOURTH", "e": "COREWALL", "p": "RFT", "due": "2026-11-17", "dwgs": 5, "note": ""}, {"id": "B-FOURTH-COREWALL-CONC", "b": "B", "l": "FOURTH", "e": "COREWALL", "p": "CONC", "due": "2026-11-17", "dwgs": null, "note": ""}, {"id": "B-FOURTH-COREWALL-RFT", "b": "B", "l": "FOURTH", "e": "COREWALL", "p": "RFT", "due": "2026-11-24", "dwgs": 5, "note": ""}, {"id": "A-FOURTH-BEAMS-CONC", "b": "A", "l": "FOURTH", "e": "BEAMS", "p": "CONC", "due": "2026-11-17", "dwgs": null, "note": ""}, {"id": "A-FOURTH-BEAMS-RFT", "b": "A", "l": "FOURTH", "e": "BEAMS", "p": "RFT", "due": "2026-11-19", "dwgs": 8, "note": ""}, {"id": "B-FOURTH-BEAMS-CONC", "b": "B", "l": "FOURTH", "e": "BEAMS", "p": "CONC", "due": "2026-11-19", "dwgs": null, "note": ""}, {"id": "B-FOURTH-BEAMS-RFT", "b": "B", "l": "FOURTH", "e": "BEAMS", "p": "RFT", "due": "2026-11-28", "dwgs": 8, "note": ""}, {"id": "A-FOURTH-STAIRS-CONC", "b": "A", "l": "FOURTH", "e": "STAIRS", "p": "CONC", "due": "2026-11-15", "dwgs": null, "note": ""}, {"id": "A-FOURTH-STAIRS-RFT", "b": "A", "l": "FOURTH", "e": "STAIRS", "p": "RFT", "due": "2026-11-19", "dwgs": 5, "note": ""}, {"id": "B-FOURTH-STAIRS-CONC", "b": "B", "l": "FOURTH", "e": "STAIRS", "p": "CONC", "due": "2026-11-19", "dwgs": null, "note": ""}, {"id": "B-FOURTH-STAIRS-RFT", "b": "B", "l": "FOURTH", "e": "STAIRS", "p": "RFT", "due": "2026-11-24", "dwgs": 5, "note": ""}, {"id": "A-FIFTH-SLAB-CONC", "b": "A", "l": "FIFTH", "e": "SLAB", "p": "CONC", "due": "2026-11-24", "dwgs": null, "note": ""}, {"id": "A-FIFTH-SLAB-RFT", "b": "A", "l": "FIFTH", "e": "SLAB", "p": "RFT", "due": "2026-11-26", "dwgs": 7, "note": ""}, {"id": "B-FIFTH-SLAB-CONC", "b": "B", "l": "FIFTH", "e": "SLAB", "p": "CONC", "due": "2026-11-29", "dwgs": null, "note": ""}, {"id": "B-FIFTH-SLAB-RFT", "b": "B", "l": "FIFTH", "e": "SLAB", "p": "RFT", "due": "2026-12-03", "dwgs": 7, "note": ""}, {"id": "A-FIFTH-COLUMNS-CONC", "b": "A", "l": "FIFTH", "e": "COLUMNS & SHEAR WALLS", "p": "CONC", "due": "2026-11-28", "dwgs": null, "note": ""}, {"id": "A-FIFTH-COLUMNS-RFT", "b": "A", "l": "FIFTH", "e": "COLUMNS & SHEAR WALLS", "p": "RFT", "due": "2026-11-28", "dwgs": 7, "note": ""}, {"id": "B-FIFTH-COLUMNS-CONC", "b": "B", "l": "FIFTH", "e": "COLUMNS & SHEAR WALLS", "p": "CONC", "due": "2026-11-28", "dwgs": null, "note": ""}, {"id": "B-FIFTH-COLUMNS-RFT", "b": "B", "l": "FIFTH", "e": "COLUMNS & SHEAR WALLS", "p": "RFT", "due": "2026-12-02", "dwgs": 7, "note": ""}, {"id": "A-FIFTH-COREWALL-CONC", "b": "A", "l": "FIFTH", "e": "COREWALL", "p": "CONC", "due": "2026-11-24", "dwgs": null, "note": ""}, {"id": "A-FIFTH-COREWALL-RFT", "b": "A", "l": "FIFTH", "e": "COREWALL", "p": "RFT", "due": "2026-11-26", "dwgs": 5, "note": ""}, {"id": "B-FIFTH-COREWALL-CONC", "b": "B", "l": "FIFTH", "e": "COREWALL", "p": "CONC", "due": "2026-11-26", "dwgs": null, "note": ""}, {"id": "B-FIFTH-COREWALL-RFT", "b": "B", "l": "FIFTH", "e": "COREWALL", "p": "RFT", "due": "2026-12-01", "dwgs": 5, "note": ""}, {"id": "A-FIFTH-BEAMS-CONC", "b": "A", "l": "FIFTH", "e": "BEAMS", "p": "CONC", "due": "2026-11-24", "dwgs": null, "note": ""}, {"id": "A-FIFTH-BEAMS-RFT", "b": "A", "l": "FIFTH", "e": "BEAMS", "p": "RFT", "due": "2026-11-28", "dwgs": 8, "note": ""}, {"id": "B-FIFTH-BEAMS-CONC", "b": "B", "l": "FIFTH", "e": "BEAMS", "p": "CONC", "due": "2026-11-29", "dwgs": null, "note": ""}, {"id": "B-FIFTH-BEAMS-RFT", "b": "B", "l": "FIFTH", "e": "BEAMS", "p": "RFT", "due": "2026-12-05", "dwgs": 8, "note": ""}, {"id": "A-FIFTH-STAIRS-CONC", "b": "A", "l": "FIFTH", "e": "STAIRS", "p": "CONC", "due": "2026-11-23", "dwgs": null, "note": ""}, {"id": "A-FIFTH-STAIRS-RFT", "b": "A", "l": "FIFTH", "e": "STAIRS", "p": "RFT", "due": "2026-11-26", "dwgs": 5, "note": ""}, {"id": "B-FIFTH-STAIRS-CONC", "b": "B", "l": "FIFTH", "e": "STAIRS", "p": "CONC", "due": "2026-11-27", "dwgs": null, "note": ""}, {"id": "B-FIFTH-STAIRS-RFT", "b": "B", "l": "FIFTH", "e": "STAIRS", "p": "RFT", "due": "2026-12-01", "dwgs": 5, "note": ""}, {"id": "A-SIXTH-SLAB-CONC", "b": "A", "l": "SIXTH", "e": "SLAB", "p": "CONC", "due": "2026-11-29", "dwgs": null, "note": ""}, {"id": "A-SIXTH-SLAB-RFT", "b": "A", "l": "SIXTH", "e": "SLAB", "p": "RFT", "due": "2026-12-03", "dwgs": 7, "note": ""}, {"id": "B-SIXTH-SLAB-CONC", "b": "B", "l": "SIXTH", "e": "SLAB", "p": "CONC", "due": "2026-12-08", "dwgs": null, "note": ""}, {"id": "B-SIXTH-SLAB-RFT", "b": "B", "l": "SIXTH", "e": "SLAB", "p": "RFT", "due": "2026-12-10", "dwgs": 7, "note": ""}, {"id": "A-SIXTH-COLUMNS-CONC", "b": "A", "l": "SIXTH", "e": "COLUMNS & SHEAR WALLS", "p": "CONC", "due": "2026-11-28", "dwgs": null, "note": ""}, {"id": "A-SIXTH-COLUMNS-RFT", "b": "A", "l": "SIXTH", "e": "COLUMNS & SHEAR WALLS", "p": "RFT", "due": "2026-12-02", "dwgs": 7, "note": ""}, {"id": "B-SIXTH-COLUMNS-CONC", "b": "B", "l": "SIXTH", "e": "COLUMNS & SHEAR WALLS", "p": "CONC", "due": "2026-12-06", "dwgs": null, "note": ""}, {"id": "B-SIXTH-COLUMNS-RFT", "b": "B", "l": "SIXTH", "e": "COLUMNS & SHEAR WALLS", "p": "RFT", "due": "2026-12-09", "dwgs": 7, "note": ""}, {"id": "A-SIXTH-COREWALL-CONC", "b": "A", "l": "SIXTH", "e": "COREWALL", "p": "CONC", "due": "2026-11-26", "dwgs": null, "note": ""}, {"id": "A-SIXTH-COREWALL-RFT", "b": "A", "l": "SIXTH", "e": "COREWALL", "p": "RFT", "due": "2026-12-01", "dwgs": 5, "note": ""}, {"id": "B-SIXTH-COREWALL-CONC", "b": "B", "l": "SIXTH", "e": "COREWALL", "p": "CONC", "due": "2026-12-05", "dwgs": null, "note": ""}, {"id": "B-SIXTH-COREWALL-RFT", "b": "B", "l": "SIXTH", "e": "COREWALL", "p": "RFT", "due": "2026-12-08", "dwgs": 5, "note": ""}, {"id": "A-SIXTH-BEAMS-CONC", "b": "A", "l": "SIXTH", "e": "BEAMS", "p": "CONC", "due": "2026-11-29", "dwgs": null, "note": ""}, {"id": "A-SIXTH-BEAMS-RFT", "b": "A", "l": "SIXTH", "e": "BEAMS", "p": "RFT", "due": "2026-12-05", "dwgs": 8, "note": ""}, {"id": "B-SIXTH-BEAMS-CONC", "b": "B", "l": "SIXTH", "e": "BEAMS", "p": "CONC", "due": "2026-12-08", "dwgs": null, "note": ""}, {"id": "B-SIXTH-BEAMS-RFT", "b": "B", "l": "SIXTH", "e": "BEAMS", "p": "RFT", "due": "2026-12-13", "dwgs": 8, "note": ""}, {"id": "A-SIXTH-STAIRS-CONC", "b": "A", "l": "SIXTH", "e": "STAIRS", "p": "CONC", "due": "2026-11-27", "dwgs": null, "note": ""}, {"id": "A-SIXTH-STAIRS-RFT", "b": "A", "l": "SIXTH", "e": "STAIRS", "p": "RFT", "due": "2026-12-01", "dwgs": 5, "note": ""}, {"id": "B-SIXTH-STAIRS-CONC", "b": "B", "l": "SIXTH", "e": "STAIRS", "p": "CONC", "due": "2026-12-05", "dwgs": null, "note": ""}, {"id": "B-SIXTH-STAIRS-RFT", "b": "B", "l": "SIXTH", "e": "STAIRS", "p": "RFT", "due": "2026-12-08", "dwgs": 5, "note": ""}, {"id": "A-ROOF-SLAB-CONC", "b": "A", "l": "ROOF", "e": "SLAB", "p": "CONC", "due": "2026-12-10", "dwgs": null, "note": ""}, {"id": "A-ROOF-SLAB-RFT", "b": "A", "l": "ROOF", "e": "SLAB", "p": "RFT", "due": "2026-12-12", "dwgs": 7, "note": ""}, {"id": "B-ROOF-SLAB-CONC", "b": "B", "l": "ROOF", "e": "SLAB", "p": "CONC", "due": "2026-12-16", "dwgs": null, "note": ""}, {"id": "B-ROOF-SLAB-RFT", "b": "B", "l": "ROOF", "e": "SLAB", "p": "RFT", "due": "2026-12-19", "dwgs": 7, "note": ""}, {"id": "A-ROOF-COLUMNS-CONC", "b": "A", "l": "ROOF", "e": "COLUMNS & SHEAR WALLS", "p": "CONC", "due": "2026-12-09", "dwgs": null, "note": ""}, {"id": "A-ROOF-COLUMNS-RFT", "b": "A", "l": "ROOF", "e": "COLUMNS & SHEAR WALLS", "p": "RFT", "due": "2026-12-13", "dwgs": 7, "note": ""}, {"id": "B-ROOF-COLUMNS-CONC", "b": "B", "l": "ROOF", "e": "COLUMNS & SHEAR WALLS", "p": "CONC", "due": "2026-12-15", "dwgs": null, "note": ""}, {"id": "B-ROOF-COLUMNS-RFT", "b": "B", "l": "ROOF", "e": "COLUMNS & SHEAR WALLS", "p": "RFT", "due": "2026-12-17", "dwgs": 7, "note": ""}, {"id": "A-ROOF-COREWALL-CONC", "b": "A", "l": "ROOF", "e": "COREWALL", "p": "CONC", "due": "2026-12-09", "dwgs": null, "note": ""}, {"id": "A-ROOF-COREWALL-RFT", "b": "A", "l": "ROOF", "e": "COREWALL", "p": "RFT", "due": "2026-12-10", "dwgs": 5, "note": ""}, {"id": "B-ROOF-COREWALL-CONC", "b": "B", "l": "ROOF", "e": "COREWALL", "p": "CONC", "due": "2026-12-15", "dwgs": null, "note": ""}, {"id": "B-ROOF-COREWALL-RFT", "b": "B", "l": "ROOF", "e": "COREWALL", "p": "RFT", "due": "2026-12-17", "dwgs": 5, "note": ""}, {"id": "A-ROOF-BEAMS-CONC", "b": "A", "l": "ROOF", "e": "BEAMS", "p": "CONC", "due": "2026-12-10", "dwgs": null, "note": ""}, {"id": "A-ROOF-BEAMS-RFT", "b": "A", "l": "ROOF", "e": "BEAMS", "p": "RFT", "due": "2026-12-12", "dwgs": 8, "note": ""}, {"id": "B-ROOF-BEAMS-CONC", "b": "B", "l": "ROOF", "e": "BEAMS", "p": "CONC", "due": "2026-12-16", "dwgs": null, "note": ""}, {"id": "B-ROOF-BEAMS-RFT", "b": "B", "l": "ROOF", "e": "BEAMS", "p": "RFT", "due": "2026-12-19", "dwgs": 8, "note": ""}, {"id": "A-ROOF-STAIRS-CONC", "b": "A", "l": "ROOF", "e": "STAIRS", "p": "CONC", "due": "2026-12-09", "dwgs": null, "note": ""}, {"id": "A-ROOF-STAIRS-RFT", "b": "A", "l": "ROOF", "e": "STAIRS", "p": "RFT", "due": "2026-12-10", "dwgs": 5, "note": ""}, {"id": "B-ROOF-STAIRS-CONC", "b": "B", "l": "ROOF", "e": "STAIRS", "p": "CONC", "due": "2026-12-15", "dwgs": null, "note": ""}, {"id": "B-ROOF-STAIRS-RFT", "b": "B", "l": "ROOF", "e": "STAIRS", "p": "RFT", "due": "2026-12-17", "dwgs": 5, "note": ""}, {"id": "A-TOP_ROOF-SLAB-CONC", "b": "A", "l": "TOP ROOF", "e": "SLAB", "p": "CONC", "due": "2026-12-10", "dwgs": null, "note": ""}, {"id": "A-TOP_ROOF-SLAB-RFT", "b": "A", "l": "TOP ROOF", "e": "SLAB", "p": "RFT", "due": "2026-12-13", "dwgs": 2, "note": ""}, {"id": "B-TOP_ROOF-SLAB-CONC", "b": "B", "l": "TOP ROOF", "e": "SLAB", "p": "CONC", "due": "2026-12-17", "dwgs": null, "note": ""}, {"id": "B-TOP_ROOF-SLAB-RFT", "b": "B", "l": "TOP ROOF", "e": "SLAB", "p": "RFT", "due": "2026-12-19", "dwgs": 2, "note": ""}, {"id": "A-TOP_ROOF-BEAMS-CONC", "b": "A", "l": "TOP ROOF", "e": "BEAMS", "p": "CONC", "due": "2026-12-10", "dwgs": null, "note": ""}, {"id": "A-TOP_ROOF-BEAMS-RFT", "b": "A", "l": "TOP ROOF", "e": "BEAMS", "p": "RFT", "due": "2026-12-13", "dwgs": 2, "note": ""}, {"id": "B-TOP_ROOF-BEAMS-CONC", "b": "B", "l": "TOP ROOF", "e": "BEAMS", "p": "CONC", "due": "2026-12-17", "dwgs": null, "note": ""}, {"id": "B-TOP_ROOF-BEAMS-RFT", "b": "B", "l": "TOP ROOF", "e": "BEAMS", "p": "RFT", "due": "2026-12-19", "dwgs": 2, "note": ""}]}};
+
+function localStore(){
+  const K="khuzam-tracker-data";const subs={schedules:[],status:[]};
+  let data;try{data=JSON.parse(localStorage.getItem(K)||"null")}catch(e){}
+  if(!data||typeof data!=="object")data={schedules:{},status:{}};
+  data.schedules=data.schedules||{};data.status=data.status||{};
+  if(!data.seeded){Object.assign(data.schedules,SEED);data.seeded=true;save()}
+  function save(){try{localStorage.setItem(K,JSON.stringify(data))}catch(e){}}
+  const snap=c=>({docs:Object.entries(data[c]).map(([id,v])=>({id,data:()=>v}))});
+  const emit=c=>subs[c].forEach(f=>f(snap(c)));
+  window.addEventListener("storage",e=>{if(e.key===K){try{data=JSON.parse(e.newValue)||data}catch(x){}emit("schedules");emit("status")}});
+  return {kind:"local",collection:c=>({
+    onSnapshot(f){subs[c].push(f);setTimeout(()=>f(snap(c)),0);return ()=>{}},
+    doc:id=>({set:async body=>{data[c][id]=body;save();emit(c)}})})};
+}
+function supaStore(){
+  const sb=window.supabase.createClient(CONFIG.SUPABASE_URL,CONFIG.SUPABASE_ANON_KEY);
+  const T="khuzam_store";const subs={schedules:[],status:[]};
+  async function pull(c){
+    const {data,error}=await sb.from(T).select("id,data").eq("collection",c);
+    if(error)throw error;
+    const s={docs:data.map(r=>({id:r.id,data:()=>r.data}))};subs[c].forEach(f=>f(s));return data;
+  }
+  async function put(c,id,body){const {error}=await sb.from(T).upsert({collection:c,id,data:body,updated_at:new Date().toISOString()});if(error)throw error}
+  sb.channel("khuzam").on("postgres_changes",{event:"*",schema:"public",table:T},p=>{const c=(p.new&&p.new.collection)||(p.old&&p.old.collection);if(subs[c])pull(c).catch(()=>{})}).subscribe();
+  setInterval(()=>{pull("schedules").catch(()=>{});pull("status").catch(()=>{})},30000);
+  return {kind:"supabase",
+    async init(){const rows=await sb.from(T).select("id").eq("collection","schedules");if(rows.error)throw rows.error;
+      if(!rows.data.length)for(const [id,doc] of Object.entries(SEED))await put("schedules",id,doc)},
+    collection:c=>({
+      onSnapshot(f,err){subs[c].push(f);pull(c).catch(e=>err&&err(e));return ()=>{}},
+      doc:id=>({set:async body=>{await put(c,id,body);await pull(c)}})})};
+}
+
+(async()=>{
+  let db;
+  const useSupa=CONFIG.SUPABASE_URL&&CONFIG.SUPABASE_ANON_KEY&&window.supabase;
+  try{db=useSupa?supaStore():localStore();if(db.init)await db.init()}
+  catch(e){console.error(e);S.conn="off";S.connErr="Couldn't reach Supabase. Check the URL, key and the khuzam_store table.";render();return}
+  S.db=db;S.canWrite=true;S.store=db.kind;
+  let gS=false,gT=false;
+  const upd=()=>{S.ready=gS&&gT;if(!$("#layer").innerHTML)render()};
+  db.collection("schedules").onSnapshot(snap=>{const o={};snap.docs.forEach(d=>{o[d.id]=d.data()});S.sched=o;gS=true;S.conn="live";upd()},()=>{S.conn="off";render()});
+  db.collection("status").onSnapshot(snap=>{const o={};snap.docs.forEach(d=>{o[d.id]=d.data()});S.status=o;gT=true;upd()},()=>{S.conn="off";render()});
+})();})();
+</script>
+
+</body>
+</html>
