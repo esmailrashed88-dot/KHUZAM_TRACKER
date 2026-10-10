@@ -8,7 +8,12 @@ SUSTRA shop-drawing delivery tracker for the AL KHUZAM project: modules 1–3, b
 2. Go to **Settings → Pages → Build and deployment**, set Source to **Deploy from a branch**, branch **main**, folder **/ (root)**, then click **Save**.
 3. After about a minute the app is live at `https://<your-user>.github.io/khuzam-tracker/`.
 
-Module 1 is already loaded with the dates from `SUSTRA_KHUZAM_TIMLINE_INTERNAL_22-9-2026.xlsx`. You can load or replace Modules 2 and 3 from the app with **Upload schedule (Excel)**.
+All three modules come preloaded from `SUSTRA_KHUZAM_TIMLINE_INTERNAL_22-9-2026.xlsx`:
+
+- **Module 1** has buildings Z, A and B, each with its own dates.
+- **Modules 2 and 3** have their own building Z, with the same dates as Module 1 Z. Their buildings A and B are **references to Module 1**: they show Module 1's drawings and status, and a delivery marked in either place counts for both.
+
+You can replace any module's schedule from the app with **Replace schedule (Excel)**. When you do, the A and B references stay in place unless the new file includes those buildings.
 
 ## Storage
 
