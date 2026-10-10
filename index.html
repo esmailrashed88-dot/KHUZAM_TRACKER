@@ -315,10 +315,67 @@ button.stat .go{position:absolute;top:12px;right:14px;font-size:12px;font-weight
 .st-late{--c:var(--bad)} .st-soon{--c:var(--warn)} .st-week{--c:var(--info)} .st-done{--c:var(--ok)}
 .st-later{--c:var(--idle)} .tl-chip.st-later{background:var(--surface);color:var(--idle)}
 #tltip{position:fixed;z-index:60;background:var(--band);color:var(--band-ink);border:1px solid var(--band-line);border-radius:8px;padding:8px 10px;font-size:12.5px;max-width:min(420px,calc(100vw - 16px));pointer-events:none;box-shadow:var(--shadow)}
-#tltip .tt-h{font-weight:600;margin-bottom:4px}
+#tltip .tt-h{font-weight:600}
+#tltip .tt-d{color:var(--band-muted);margin-bottom:4px;font-variant-numeric:tabular-nums}
 #tltip .tt-h span{font-family:var(--font-display);letter-spacing:.08em;color:var(--band-muted)}
 #tltip .tt-r{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center;padding:2px 0}
 #tltip .pill{font-size:11px}
+
+/* gantt (primavera style) */
+.g-wrap{--gw:590px;--rh:30px}
+.g{position:relative;display:flex;min-width:100%}
+.g-left{position:sticky;left:0;z-index:5;width:var(--gw);flex:none;background:var(--surface);border-right:2px solid var(--line);box-shadow:4px 0 8px -6px rgba(16,38,58,.25)}
+.g-right{position:relative;flex:none}
+.g-row{height:var(--rh);border-bottom:1px solid var(--line);position:relative}
+.g-left .g-row{display:grid;grid-template-columns:minmax(0,1fr) 60px 60px 54px 54px 100px;align-items:center}
+.g-c{padding:0 6px;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.g-c.r{text-align:right}
+.g-name{padding-left:calc(8px + var(--ind,0)*16px);display:flex;align-items:center;gap:6px}
+.g-name .code{font-size:11px;padding:0 4px}
+.g-act{overflow:hidden;text-overflow:ellipsis}
+.g-ar{display:inline;font-size:11.5px;opacity:.7}
+.g-hd{position:sticky;top:0;z-index:6;height:50px;background:var(--band);color:var(--band-ink);border-bottom:3px solid var(--accent)}
+.g-left .g-hd .g-c{font-family:var(--font-display);font-weight:600;font-size:13px;letter-spacing:.08em;text-transform:uppercase;white-space:normal;line-height:1.1}
+.g-left .g-hd .g-c .ar{font-size:10.5px;color:var(--band-muted)}
+.g-scale .tl-mon{color:var(--band-ink);border-left-color:var(--band-line)}
+.g-scale .tl-day{color:var(--band-muted)}
+.g-scale .tl-day.we{color:var(--band-ink);opacity:.5}
+.g-m{background:color-mix(in srgb,var(--band) 10%,var(--surface))}
+.g-m .g-name b{font-family:var(--font-display);font-size:15px;letter-spacing:.08em}
+.g-b{background:var(--surface-2)}
+.g-b .g-name b{font-family:var(--font-display);font-size:14px;letter-spacing:.06em}
+.g-l .g-name b{font-family:var(--font-display);font-weight:600;font-size:13.5px;letter-spacing:.06em}
+.g-m .g-c,.g-b .g-c{font-weight:600}
+.g-tog{border:0;background:none;color:var(--muted);cursor:pointer;width:16px;padding:0;font-size:12px;flex:none}
+.g-tog:hover{color:var(--accent)}
+.g-name .pill{font-size:10.5px;padding:0 6px}
+.g-pc{display:inline-block;width:38px;height:6px;border-radius:3px;background:var(--idle-soft);overflow:hidden;vertical-align:middle;margin-right:5px}
+.g-pc i{display:block;height:100%;background:var(--c-done)}
+.g-cols{position:absolute;top:0;bottom:0;left:0;right:0;pointer-events:none;z-index:0}
+.g-right>.g-row{z-index:1;background:transparent}
+.g-right>.g-m{background:color-mix(in srgb,var(--band) 6%,transparent)}
+.g-right>.g-b{background:color-mix(in srgb,var(--idle-soft) 45%,transparent)}
+.g-right .g-hd{z-index:4}
+.g-right>.g-hd{background:var(--band)}
+.g-left .g-hd .g-c{letter-spacing:.04em}
+@media (max-width:900px){.g-wrap{--gw:180px}.g-wrap .g-left .g-row{grid-template-columns:minmax(0,1fr)}.g-wrap .g-left .g-c:not(.g-name){display:none}.g-name .g-ar{display:none}.g-name{padding-left:calc(4px + var(--ind,0)*8px)}}
+.g-cols .tl-now{z-index:3;width:2px;background:var(--bad);opacity:.85}
+.g-bar{position:absolute;top:calc(var(--rh)/2 - 7px);height:14px;border:1px solid var(--c);background:color-mix(in srgb,var(--c) 75%,var(--surface));border-radius:2px;padding:0;cursor:pointer;z-index:2}
+.g-bar.rf{background:repeating-linear-gradient(135deg,var(--c) 0 5px,color-mix(in srgb,var(--c) 70%,var(--surface)) 5px 8px)}
+.g-bar.st-later{background:color-mix(in srgb,var(--info) 35%,var(--surface));border-color:var(--info)}
+.g-bar.st-later.rf{background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--info) 45%,var(--surface)) 0 5px,color-mix(in srgb,var(--info) 20%,var(--surface)) 5px 8px)}
+.g-bar:hover,.g-bar:focus-visible{outline:2px solid var(--ink);outline-offset:1px}
+.g-lbl{position:absolute;top:calc(var(--rh)/2 - 8px);font-size:11.5px;color:var(--muted);white-space:nowrap;pointer-events:none;z-index:2}
+.g-lbl.s{font-family:var(--font-display);font-weight:600;letter-spacing:.06em;color:var(--ink);font-size:12px}
+.g-sum{position:absolute;top:calc(var(--rh)/2 - 3px);height:6px;background:var(--ink);z-index:2}
+.g-sum::before,.g-sum::after{content:"";position:absolute;top:0;border-top:8px solid var(--ink);border-left:5px solid transparent;border-right:5px solid transparent}
+.g-sum::before{left:-5px}.g-sum::after{right:-5px}
+.g-sum.late{background:var(--bad)}.g-sum.late::before,.g-sum.late::after{border-top-color:var(--bad)}
+.g-sum i{display:block;height:100%;background:var(--c-done)}
+.g-key{display:inline-block;width:18px;height:10px;border:1px solid var(--info);background:color-mix(in srgb,var(--info) 35%,var(--surface));border-radius:2px}
+.g-key.rf{background:repeating-linear-gradient(135deg,var(--info) 0 4px,color-mix(in srgb,var(--info) 30%,var(--surface)) 4px 6px)}
+.g-key.sum{height:5px;background:var(--ink);border:0;border-radius:0}
+.g-key.dd{width:2px;height:14px;background:var(--bad);border:0}
 
 #toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--band);color:var(--band-ink);padding:10px 16px;border-radius:8px;border:1px solid var(--band-line);box-shadow:var(--shadow);max-width:calc(100vw - 32px);z-index:50}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -528,7 +585,9 @@ function openItem(k){
       ${ro?`<div class="field"><span>${bi("Expected drawings","عدد اللوحات المتوقع")}</span><output class="num">${d??"—"}</output></div>`:`<label class="field"><span>${bi("Expected drawings","عدد اللوحات المتوقع")}</span><input id="fDw" type="number" min="0" step="1" inputmode="numeric" value="${d??""}" placeholder="e.g. 8"></label>`}
       ${it.note?`<div class="note full">${h(it.note)}</div>`:""}
       ${ro?`<p class="muted full" style="margin:0;font-size:13px">${S.db?bi("You have view-only access.","عندك صلاحية عرض بس."):bi("Editing is not available in this view.","التعديل مش متاح هنا.")}</p>`:
-      `<label class="field"><span>${bi("Delivery date","تاريخ التسليم")}</span><input id="fDoneAt" type="date" value="${x.doneAt||todayISO()}"></label>
+      `<label class="field"><span>${bi("Planned start","بداية الشغل")}</span><input id="fStart" type="date" max="${it.due}" value="${startOf(it)}"></label>
+       <div class="field"><span>${bi("Duration","المدة")}</span><output class="num">${dayDiff(startOf(it),it.due)} days</output></div>
+       <label class="field"><span>${bi("Delivery date","تاريخ التسليم")}</span><input id="fDoneAt" type="date" value="${x.doneAt||todayISO()}"></label>
        <div class="field"><span>${bi("Delivered?","اتسلّم؟")}</span><output>${s==="done"?bi("Yes — "+fmt(x.doneAt||todayISO(),"day"),"أيوه"):bi("Not yet","لسه")}</output></div>`}
     </div>
     <div class="dlg-f"><p class="err" id="dlgErr" role="alert"></p>
@@ -536,6 +595,7 @@ function openItem(k){
     </div></div>`,async btn=>{
     const mode=btn.dataset.save;const dwIn=$("#fDw").value.trim();const doneAt=$("#fDoneAt").value||todayISO();
     const prev=S.status[k]||{};const next={item:it.id,mod:it.mod,updatedAt:new Date().toISOString()};
+    const stIn=$("#fStart")?$("#fStart").value:"";if(stIn&&stIn<=it.due&&stIn!==defStart(it))next.start=stIn;
     if(dwIn!=="")next.dwgs=Math.max(0,Math.round(+dwIn));
     if(mode==="done"){next.done=true;next.doneAt=doneAt}else if(mode==="undo"){next.done=false}else if(prev.done){next.done=true;next.doneAt=prev.doneAt}else next.done=false;
     try{await S.db.collection("status").doc(k).set(next);closeLayer();toast(mode==="done"?"Marked delivered · اتعلّم إنه اتسلّم":mode==="undo"?"Marked not delivered · اتلغى التسليم":"Saved · اتحفظ")}
@@ -695,63 +755,93 @@ function startupAlert(){
   return true;
 }
 
-/* ---------- TIMELINE (Gantt) ---------- */
+/* ---------- TIMELINE (Primavera-style Gantt) ---------- */
 const ZOOMS=[7,12,20,32];
-const SPRI={late:0,soon:1,week:2,later:3,done:4};
-function tlState(){const d={mod:"all",b:"all",p:"all",z:2,done:true};S.view.tl=Object.assign(d,S.view.tl||{});return S.view.tl}
+const LVC={GROUND:"GF",FIRST:"1F",SECOND:"2F",THIRD:"3F",FOURTH:"4F",FIFTH:"5F",SIXTH:"6F",SEVENTH:"7F",EIGHTH:"8F",ROOF:"RF","TOP ROOF":"TR"};
+function addDays(iso,n){const d=new Date(P(iso).t+n*864e5);return d.getUTCFullYear()+"-"+pad(d.getUTCMonth()+1)+"-"+pad(d.getUTCDate())}
+const dayDiff=(a,b)=>Math.round((P(b).t-P(a).t)/864e5);
+let _ds={src:null,map:{}};
+/* Default planned start: the previous delivery date for the same building + package (work runs in sequence);
+   if that is more than 10 days earlier, or this is the first one, start 3 days before the target. */
+function defStart(it){
+  if(_ds.src!==S.sched){_ds={src:S.sched,map:{}};
+    for(const m of MODS){const g={};for(const i of itemsOf(m)){const k=i.b+"|"+i.p;(g[k]=g[k]||[]).push(i)}
+      for(const k in g){const dues=[...new Set(g[k].map(i=>i.due))].sort();
+        for(const i of g[k]){const idx=dues.indexOf(i.due);const prev=idx>0?dues[idx-1]:null;
+          _ds.map[key(i)]=prev&&dayDiff(prev,i.due)<=10?prev:addDays(i.due,-3)}}}}
+  return _ds.map[key(it)]||addDays(it.due,-3);
+}
+function startOf(it){const x=S.status[key(it)];return x&&x.start&&x.start<=it.due?x.start:defStart(it)}
+function tlState(){const d={mod:"all",b:"all",p:"all",z:2,done:"true",col:[]};S.view.tl=Object.assign(d,S.view.tl||{});if(!Array.isArray(S.view.tl.col))S.view.tl.col=[];return S.view.tl}
 function renderTimeline(){
-  const T=tlState();
+  const T=tlState();const col=new Set(T.col);
   const seg=(k,opts)=>`<div class="seg" role="group">${opts.map(([v,l])=>`<button type="button" data-tlset="${k}:${v}" aria-pressed="${String(T[k])===String(v)}">${l}</button>`).join("")}</div>`;
-  let html=`<div class="mhead"><div><h1>${bi("Timeline","الجدول الزمني")}</h1><p>${bi("Every delivery on the calendar. Hover a mark for details, click it to update.","كل التسليمات على الكالندر — قف على أي علامة تشوف تفاصيلها، واضغط عليها عشان تحدّثها.")}</p></div>
+  let html=`<div class="mhead"><div><h1>${bi("Timeline","الجدول الزمني")}</h1><p>${bi("Gantt chart by Module → Building → Level → Activity. Click a bar to update it; hover for details.","جانت تشارت بالموديول ← المبنى ← الدور ← النشاط. اضغط على أي بار تحدّثه، وقف عليه تشوف تفاصيله.")}</p></div>
     <div class="tl-zoom"><button type="button" class="btn bi" data-tltoday>${bi("Today","النهارده")}</button><button type="button" class="btn" data-tlzoom="-1" aria-label="Zoom out">−</button><span class="label">${bi("Zoom","تكبير")}</span><button type="button" class="btn" data-tlzoom="1" aria-label="Zoom in">+</button></div></div>
   <div class="fbar tl-f">
     <span class="label">${bi("Module","الموديول")}</span>${seg("mod",[["all",bi("All","الكل")],...MODS.map(m=>[m,bi("M"+m.slice(1),"م"+m.slice(1))])])}
     <span class="label">${bi("Building","المبنى")}</span>${seg("b",[["all",bi("All","الكل")],...BLD.map(b=>[b,b])])}
     <span class="label">${bi("Package","النوع")}</span>${seg("p",[["all",bi("All","الكل")],["CONC",bi("Concrete","خرسانة")],["RFT",bi("Reinf.","تسليح")]])}
     ${seg("done",[["true",bi("Show delivered","اعرض المتسلّم")],["false",bi("Hide delivered","اخفي المتسلّم")]])}
+    <span class="label">${bi("Expand","فتح")}</span><div class="seg"><button type="button" data-gexp="all">${bi("Activities","الأنشطة")}</button><button type="button" data-gexp="levels">${bi("Levels","الأدوار")}</button><button type="button" data-gexp="bldg">${bi("Buildings","المباني")}</button></div>
   </div>`;
   if(!S.ready)return html+`<div class="empty"><p>Loading…</p></div>`;
+  // build WBS
   const rows=[];const mods=T.mod==="all"?MODS:[T.mod];
-  for(const m of mods){const refs=refsOf(m);
+  const pass=i=>(T.p==="all"||i.p===T.p)&&(String(T.done)!=="false"||!isDone(i));
+  for(const m of mods){const refs=refsOf(m);const mRows=[];const mItems=[];
     for(const b of BLD){if(T.b!=="all"&&T.b!==b)continue;
       const ref=refs[b]&&refs[b]!==m?refs[b]:null;if(ref&&T.mod==="all")continue;
-      let it=bItems(m,b);if(T.p!=="all")it=it.filter(i=>i.p===T.p);if(String(T.done)==="false")it=it.filter(i=>!isDone(i));
-      if(!it.length)continue;
+      const it=bItems(m,b).filter(pass);if(!it.length)continue;mItems.push(...it);
+      const bid="b:"+m+":"+b;mRows.push({t:"b",id:bid,lv:1,name:"BUILDING "+b,ar:"مبنى "+b,ref,items:it,par:["m:"+m]});
       const lv=LEVELS.filter(l=>it.some(i=>i.l===l)).concat([...new Set(it.map(i=>i.l))].filter(l=>!LEVELS.includes(l)));
-      rows.push({g:true,m,b,ref,s:stats(it)});
-      for(const l of lv)rows.push({m,b,l,ref,items:it.filter(i=>i.l===l)});
-    }}
-  if(!rows.length)return html+`<div class="empty"><p>${bi("No deliveries match these filters.","مفيش تسليمات بالفلاتر دي.")}</p></div>`;
-  const all=rows.flatMap(r=>r.items||[]);const ds=all.map(i=>i.due).sort();const t0=todayISO();
-  const addD=(iso,n)=>{const d=new Date(P(iso).t+n*864e5);return d.getUTCFullYear()+"-"+pad(d.getUTCMonth()+1)+"-"+pad(d.getUTCDate())};
-  const start=addD(ds[0]<t0?ds[0]:t0,-3),end=addD(ds[ds.length-1]>t0?ds[ds.length-1]:t0,4);
-  const px=ZOOMS[T.z]||20;const n=Math.round((P(end).t-P(start).t)/864e5)+1;const W=n*px;
-  const X=iso=>Math.round((P(iso).t-P(start).t)/864e5)*px+px/2;
-  // header + overlay
+      for(const l of lv){const li=it.filter(i=>i.l===l).sort((a,b)=>a.due.localeCompare(b.due)||ELS.indexOf(a.e)-ELS.indexOf(b.e)||a.p.localeCompare(b.p));
+        const lid="l:"+m+":"+b+":"+l;mRows.push({t:"l",id:lid,lv:2,name:l,items:li,par:["m:"+m,bid]});
+        for(const i of li)mRows.push({t:"a",lv:3,it:i,par:["m:"+m,bid,lid]});
+      }}
+    if(mItems.length){rows.push({t:"m",id:"m:"+m,lv:0,name:modName(m).toUpperCase(),ar:modAr(m),items:mItems,par:[]});rows.push(...mRows)}
+  }
+  if(!rows.length)return html+`<div class="empty"><p>${bi("No activities match these filters.","مفيش أنشطة بالفلاتر دي.")}</p></div>`;
+  const vis=rows.filter(r=>!r.par.some(p=>col.has(p)));
+  const acts=rows.filter(r=>r.t==="a").map(r=>r.it);
+  const t0=todayISO();
+  let lo=t0,hi=t0;for(const i of acts){const s=startOf(i);if(s<lo)lo=s;if(i.due>hi)hi=i.due}
+  const start=addDays(lo,-3),end=addDays(hi,5);
+  const px=ZOOMS[T.z]||20;const n=dayDiff(start,end)+1;const W=n*px;
+  const X=iso=>dayDiff(start,iso)*px;
   let months="",days="",cols="";let cm=-1;
-  for(let i=0;i<n;i++){const iso=addD(start,i);const p=P(iso);const w=wd(iso);
+  for(let i=0;i<n;i++){const iso=addDays(start,i);const p=P(iso);const w=wd(iso);
     if(p.m!==cm){cm=p.m;months+=`<span class="tl-mon" style="left:${i*px}px">${MON[p.m-1]} ${p.y}</span>`;if(i)cols+=`<i class="tl-mline" style="left:${i*px}px"></i>`}
     if(w===5||w===6)cols+=`<i class="tl-wk" style="left:${i*px}px;width:${px}px"></i>`;
     if(px>=12||w===6)days+=`<span class="tl-day${iso===t0?" now":""}${w===5||w===6?" we":""}" style="left:${i*px}px;width:${px>=12?px:px*7}px">${p.d}${px>=20?`<small>${DAY[w][0]}</small>`:""}</span>`;
   }
-  const tx=X(t0);cols+=`<i class="tl-now" style="left:${tx}px"><b>${bi("Today","النهارده")}</b></i>`;
-  let body="";
-  for(const r of rows){
-    if(r.g){body+=`<div class="tl-row tl-g"><div class="tl-lab"><button type="button" class="tl-glab" data-gob="${r.m}:${r.b}"><b><span class="lg">${modName(r.m).toUpperCase()}</span><span class="sh">M${r.m.slice(1)}</span> · ${r.b}</b>${r.ref?`<span class="pill info">${bi("= "+modName(r.ref),"نفس "+modAr(r.ref))}</span>`:""}</button><span class="num muted">${r.s.done}/${r.s.total}</span></div><div class="tl-track" style="width:${W}px"></div></div>`;continue}
-    const groups={};for(const it of r.items){const k=it.due+"|"+it.p;(groups[k]=groups[k]||[]).push(it)}
-    const dd=r.items.map(i=>i.due).sort();const x1=X(dd[0]),x2=X(dd[dd.length-1]);
-    const s=stats(r.items);
-    let marks=`<i class="tl-bar${s.late?" late":""}" style="left:${x1}px;width:${Math.max(2,x2-x1)}px"></i>`;
-    for(const k in groups){const g=groups[k];const st=g.map(status).sort((a,b)=>SPRI[a]-SPRI[b])[0];const dw=g.reduce((a,i)=>a+(dwgs(i)||0),0);
-      marks+=`<button type="button" class="tl-chip ${g[0].p==="CONC"?"cc":"rf"} st-${st}" style="left:${X(g[0].due)}px" data-keys="${h(g.map(key).join(","))}" aria-label="${h(fmt(g[0].due)+" "+PK[g[0].p]+": "+g.map(i=>i.e).join(", "))}">${g.length>1?g.length:""}</button>`}
-    body+=`<div class="tl-row"><div class="tl-lab"><b>${h(r.l)}</b><span class="num muted">${s.done}/${s.total} · ${s.dw} dwgs</span></div><div class="tl-track" style="width:${W}px">${marks}</div></div>`;
+  const tx=X(t0)+px/2;cols+=`<i class="tl-now" style="left:${tx}px"></i>`;
+  const sumOf=items=>{let s=null,f=null;for(const i of items){const a=startOf(i);if(!s||a<s)s=a;if(!f||i.due>f)f=i.due}const st=stats(items);return {s,f,st}};
+  let grid="",bars="";
+  for(const r of vis){
+    if(r.t==="a"){const it=r.it;const s=startOf(it),st=status(it),d=dwgs(it);const dur=dayDiff(s,it.due);
+      grid+=`<div class="g-row g-a"><div class="g-c g-name" style="--ind:${r.lv}"><span class="g-act">${h(it.e)}</span><span class="code">${PKC[it.p]}</span></div><div class="g-c num">${fmt(s)}</div><div class="g-c num">${fmt(it.due)}</div><div class="g-c num r">${dur}d</div><div class="g-c num r">${d??"—"}</div><div class="g-c"><span class="pill ${SCLS[st]}">${st==="done"?"100%":ST[st]}</span></div></div>`;
+      const x1=X(s),x2=X(it.due)+px;
+      bars+=`<div class="g-row g-a"><button type="button" class="g-bar ${it.p==="CONC"?"cc":"rf"} st-${st}" style="left:${x1}px;width:${Math.max(px,x2-x1)}px" data-keys="${h(key(it))}" aria-label="${h(it.l+" "+it.e+" "+PK[it.p]+" "+fmt(it.due))}"></button><span class="g-lbl" style="left:${x2+6}px">${h(elShort(it.e))} · ${PKC[it.p]}${d?" · "+d+" dwgs":""}</span></div>`;
+      continue}
+    const {s,f,st}=sumOf(r.items);const open=!col.has(r.id);const pc=pct(st.done,st.total);
+    grid+=`<div class="g-row g-${r.t}"><div class="g-c g-name" style="--ind:${r.lv}"><button type="button" class="g-tog" data-gtog="${h(r.id)}" aria-expanded="${open}">${open?"▾":"▸"}</button><b>${h(r.name)}</b>${r.ar?`<span class="ar g-ar">${r.ar}</span>`:""}${r.ref?`<span class="pill info">${bi("= "+modName(r.ref),"نفس "+modAr(r.ref))}</span>`:""}${st.late?`<span class="pill bad">${st.late}</span>`:""}</div><div class="g-c num">${fmt(s)}</div><div class="g-c num">${fmt(f)}</div><div class="g-c num r">${dayDiff(s,f)}d</div><div class="g-c num r">${st.dw}</div><div class="g-c"><span class="g-pc"><i style="width:${pc}%"></i></span><span class="num">${pc}%</span></div></div>`;
+    const x1=X(s),x2=X(f)+px;
+    bars+=`<div class="g-row g-${r.t}"><span class="g-sum${st.late?" late":""}" style="left:${x1}px;width:${x2-x1}px"><i style="width:${pc}%"></i></span>${r.t!=="m"?`<span class="g-lbl s" style="left:${x2+8}px">${h(r.name)}</span>`:""}</div>`;
   }
-  html+=`<div class="tl-legend legend"><span><i class="tl-key cc"></i>${bi("Concrete","خرسانة")}</span><span><i class="tl-key rf"></i>${bi("Reinforcement","تسليح")}</span>${["late","soon","week","later","done"].map(k=>`<span><i class="dot ${SCLS[k]}"></i>${bi(ST[k],ST_AR[k])}</span>`).join("")}<span class="muted">${bi("Number = packages on the same day","الرقم = عدد البنود في نفس اليوم")}</span></div>
-  <div class="tl-wrap" id="tlWrap"><div class="tl" style="width:calc(var(--lw) + ${W}px)">
-    <div class="tl-row tl-head"><div class="tl-lab"><span class="label">${bi("Level","الدور")}</span></div><div class="tl-track" style="width:${W}px"><div class="tl-months">${months}</div><div class="tl-days">${days}</div></div></div>
-    <div class="tl-cols" style="width:${W}px">${cols}</div>
-    ${body}
-  </div></div>`;
+  html+=`<div class="tl-legend legend"><span><i class="g-key cc"></i>${bi("Concrete","خرسانة")}</span><span><i class="g-key rf"></i>${bi("Reinforcement","تسليح")}</span><span><i class="g-key sum"></i>${bi("Summary (WBS)","ملخص")}</span>${["late","soon","week","later","done"].map(k=>`<span><i class="dot ${SCLS[k]}"></i>${bi(ST[k],ST_AR[k])}</span>`).join("")}<span><i class="g-key dd"></i>${bi("Data date (today)","النهارده")}</span></div>
+  <div class="tl-wrap g-wrap" id="tlWrap"><div class="g" style="width:calc(var(--gw) + ${W}px)">
+    <div class="g-left">
+      <div class="g-row g-hd"><div class="g-c g-name">${bi("Activity","النشاط")}</div><div class="g-c">${bi("Start","البداية")}</div><div class="g-c">${bi("Finish","التسليم")}</div><div class="g-c r">${bi("Dur.","المدة")}</div><div class="g-c r">${bi("Dwgs","لوحات")}</div><div class="g-c">${bi("Status","الحالة")}</div></div>
+      ${grid}
+    </div>
+    <div class="g-right" style="width:${W}px">
+      <div class="g-row g-hd g-scale"><div class="tl-months">${months}</div><div class="tl-days">${days}</div></div>
+      <div class="g-cols">${cols}</div>
+      ${bars}
+    </div>
+  </div></div>
+  <p class="muted" style="margin:-8px 0 0;font-size:12.5px">${bi("Finish = target date from the Excel timeline. Start = planned start: by default the previous delivery date of the same building and package (or 3 days before the finish). Change it from the activity's update window.","التسليم = الميعاد من شيت الإكسيل. البداية = بداية مخططة: افتراضياً ميعاد التسليم اللي قبله لنفس المبنى ونفس النوع (أو 3 أيام قبل التسليم)، وتقدر تغيّرها من نافذة تحديث النشاط.")}</p>`;
   S._tlTodayX=tx;
   return html;
 }
@@ -765,15 +855,15 @@ function openGroup(keys){
 }
 function tlTip(el){
   let tip=$("#tltip");if(!tip){tip=document.createElement("div");tip.id="tltip";tip.setAttribute("role","tooltip");document.body.appendChild(tip)}
-  const list=tlItems(el.dataset.keys);if(!list.length)return;const it=list[0];
-  tip.innerHTML=`<div class="tt-h">${fmt(it.due,"day")} · ${modName(it.mod)} · ${it.b} · ${h(it.l)} <span>${PKC[it.p]}</span></div>`+list.map(i=>`<div class="tt-r"><span>${h(i.e)}</span><span>${dwgs(i)??"—"} dwgs</span><span class="pill ${SCLS[status(i)]}">${countdown(i)}</span></div>`).join("");
+  const list=tlItems(el.dataset.keys);if(!list.length)return;const it=list[0];const sd=startOf(it);
+  tip.innerHTML=`<div class="tt-h">${modName(it.mod)} · ${it.b} · ${h(it.l)} <span>${PKC[it.p]}</span></div><div class="tt-d">${fmt(sd,"day")} → ${fmt(it.due,"day")} · ${dayDiff(sd,it.due)}d</div>`+list.map(i=>`<div class="tt-r"><span>${h(i.e)}</span><span>${dwgs(i)??"—"} dwgs</span><span class="pill ${SCLS[status(i)]}">${countdown(i)}</span></div>`).join("");
   tip.hidden=false;const r=el.getBoundingClientRect();
   let x=r.left+r.width/2-tip.offsetWidth/2;x=Math.max(8,Math.min(x,window.innerWidth-tip.offsetWidth-8));
   let y=r.top-tip.offsetHeight-8;if(y<8)y=r.bottom+8;tip.style.left=x+"px";tip.style.top=y+"px";
 }
 function tlHide(){const t=$("#tltip");if(t)t.hidden=true}
-document.addEventListener("mouseover",e=>{const c=e.target.closest(".tl-chip");if(c)tlTip(c);else tlHide()});
-document.addEventListener("focusin",e=>{const c=e.target.closest&&e.target.closest(".tl-chip");if(c)tlTip(c)});
+document.addEventListener("mouseover",e=>{const c=e.target.closest(".tl-chip,.g-bar");if(c)tlTip(c);else tlHide()});
+document.addEventListener("focusin",e=>{const c=e.target.closest&&e.target.closest(".tl-chip,.g-bar");if(c)tlTip(c)});
 document.addEventListener("scroll",tlHide,true);
 function tlScrollToday(smooth){const w=$("#tlWrap");if(w&&S._tlTodayX!=null)w.scrollTo({left:Math.max(0,S._tlTodayX-140),behavior:smooth?"smooth":"auto"})}
 
@@ -799,6 +889,10 @@ document.addEventListener("click",e=>{
   if(t.dataset.tlzoom){const T=tlState();T.z=Math.max(0,Math.min(ZOOMS.length-1,T.z+ +t.dataset.tlzoom));saveView();S._tlJump=true;render();return}
   if(t.hasAttribute("data-tltoday"))return tlScrollToday(true);
   if(t.dataset.keys)return openGroup(t.dataset.keys);
+  if(t.dataset.gtog){const T=tlState();const i=T.col.indexOf(t.dataset.gtog);if(i>=0)T.col.splice(i,1);else T.col.push(t.dataset.gtog);saveView();render();return}
+  if(t.dataset.gexp){const T=tlState();const ids=[];const kind=t.dataset.gexp;
+    if(kind!=="all")for(const m of MODS)for(const b of BLD){if(kind==="bldg")ids.push("b:"+m+":"+b);else for(const l of LEVELS)ids.push("l:"+m+":"+b+":"+l)}
+    T.col=ids;saveView();render();return}
   if(t.dataset.gob){const [m,b]=t.dataset.gob.split(":");return go({screen:"mod",mod:m,b,filter:"all"})}
   if(t.dataset.b){S.view.b=t.dataset.b;saveView();render();const m=$("#matrix");m&&m.scrollIntoView({behavior:"smooth",block:"start"});return}
   if(t.dataset.f){S.view.filter=t.dataset.f;saveView();render();return}
